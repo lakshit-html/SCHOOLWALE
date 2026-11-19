@@ -49,7 +49,12 @@ describe('StudyForge Application UI & Navigation', () => {
     fireEvent.click(pomodoroButtons[0]);
     expect(screen.getByText(/Pomodoro Focus Sanctuary/i)).toBeInTheDocument();
 
-    // 5. Navigate to Notes
+    // 5. Navigate to Study Arena & Games
+    const arenaButtons = screen.getAllByRole('button', { name: /Study Arena & Games/i });
+    fireEvent.click(arenaButtons[0]);
+    expect(screen.getByText(/BrainForge Arena & Boss Quest/i)).toBeInTheDocument();
+
+    // 6. Navigate to Notes
     const notesButtons = screen.getAllByRole('button', { name: /Notes Manager/i });
     fireEvent.click(notesButtons[0]);
     expect(screen.getByText(/Academic Notes & Formula Vault/i)).toBeInTheDocument();

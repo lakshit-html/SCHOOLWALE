@@ -6,6 +6,7 @@ import {
   ClockAlert,
   Repeat,
   Timer,
+  Gamepad2,
   BookOpen,
   Award,
   BarChart3,
@@ -38,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     id: NavigationTab;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
-    badge?: number;
+    badge?: number | string;
     badgeColor?: string;
   }> = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -64,6 +65,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30'
     },
     { id: 'pomodoro', label: 'Focus Timer', icon: Timer },
+    {
+      id: 'arena',
+      label: 'Study Arena & Games',
+      icon: Gamepad2,
+      badge: data.game?.level ? `L${data.game.level}` : 'Play',
+      badgeColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30'
+    },
     { id: 'notes', label: 'Notes Manager', icon: BookOpen },
     { id: 'tests', label: 'Mock Tests & Exam', icon: Award },
     { id: 'analytics', label: 'Analytics & Insights', icon: BarChart3 },

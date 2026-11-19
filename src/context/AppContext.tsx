@@ -23,6 +23,7 @@ export type NavigationTab =
   | 'backlog'
   | 'revision'
   | 'pomodoro'
+  | 'arena'
   | 'notes'
   | 'tests'
   | 'analytics'
@@ -85,6 +86,11 @@ interface AppContextValue {
   addMockTest: (test: Omit<MockTest, 'id' | 'percentage'>) => void;
   updateMockTest: (id: string, updates: Partial<MockTest>) => void;
   deleteMockTest: (id: string) => void;
+
+  // Gamification
+  addXp: (amount: number, coins?: number) => void;
+  damageBoss: (dmg: number) => void;
+  recordGameResult: (score: number, maxCombo: number) => void;
 
   // Backup & Reset
   exportBackup: () => void;
@@ -258,19 +264,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (isNowCompleted) {
         if (prev.profile.soundEnabled) soundEffects.playCompletionBeep();
         fireConfetti();
-        showToast(`Task completed! +${task.estimatedMinutes}m logged`, 'success');
+        showToast(`Task completed! +${task.estimatedMinutes}m logged (+50 XP)`, 'success');
       }
+
+      const currentGame = prev.game || {
+        xp: 0,
+        level: 1,
+        coins: 0,
+        bossHp: 1000,
+        bossMaxHp: 1000,
+        highestCombo: 0,
+        unlockedBadges: [],
+        gamesPlayed: 0
+      };
+
+      const updatedGame = isNowCompleted
+        ? {
+            ...currentGame,
+            xp: currentGame.xp + 50,
+            bossHp: Math.max(0, currentGame.bossHp - 150),
+            coins: currentGame.coins + 15
+          }
+        : currentGame;
 
       return {
         ...prev,
         profile: updatedProfile,
+        game: updatedGame,
         tasks: prev.tasks.map(t =>
           t.id === id
             ? {
-                ...t,
-                completed: isNowCompleted,
-                completedAt: isNowCompleted ? new Date().toISOString() : undefined
-              }
+              ...t,
+              completed: isNowCompleted,
+              completedAt: isNowCompleted ? new Date().toISOString() : undefined
+            }
             : t
         )
       };
@@ -352,10 +379,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         backlog: prev.backlog.map(b =>
           b.id === id
             ? {
-                ...b,
-                completed: isNowCompleted,
-                completedAt: isNowCompleted ? new Date().toISOString() : undefined
-              }
+              ...b,
+              completed: isNowCompleted,
+              completedAt: isNowCompleted ? new Date().toISOString() : undefined
+            }
             : b
         )
       };
@@ -423,15 +450,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         revisions: prev.revisions.map(r =>
           r.id === id
             ? {
-                ...r,
-                cycle: nextCycle,
-                intervalDays: nextInterval,
-                scheduledDate: nextScheduled,
-                status: 'pending',
-                confidenceLevel: confidence,
-                completedAt: new Date().toISOString(),
-                history: updatedHistory
-              }
+              ...r,
+              cycle: nextCycle,
+              intervalDays: nextInterval,
+              scheduledDate: nextScheduled,
+              status: 'pending',
+              confidenceLevel: confidence,
+              completedAt: new Date().toISOString(),
+              history: updatedHistory
+            }
             : r
         )
       };
@@ -454,15 +481,126 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       completedAt: new Date().toISOString()
     };
 
-    setData(prev => ({
-      ...prev,
-      profile: recordActivityForStreak(prev),
-      focusSessions: [newSession, ...prev.focusSessions]
-    }));
+    setData(prev => {
+      const currentGame = prev.game || {
+        xp: 0,
+        level: 1,
+        coins: 0,
+        bossHp: 1000,
+        bossMaxHp: 1000,
+        highestCombo: 0,
+        unlockedBadges: [],
+        gamesPlayed: 0
+      };
+
+      const updatedGame = {
+        ...currentGame,
+        xp: currentGame.xp + 100,
+        bossHp: Math.max(0, currentGame.bossHp - 300),
+        coins: currentGame.coins + 25
+      };
+
+      return {
+        ...prev,
+        profile: recordActivityForStreak(prev),
+        game: updatedGame,
+        focusSessions: [newSession, ...prev.focusSessions]
+      };
+    });
 
     if (data.profile.soundEnabled) soundEffects.playSessionEndAlarm();
     fireConfetti();
-    showToast(`Focus session logged: ${session.durationMinutes} mins!`, 'success');
+    showToast(`Focus session logged: ${session.durationMinutes} mins (+100 XP, 300 Boss DMG!)`, 'success');
+  };
+
+  // Gamification operations
+  const addXp = (amount: number, coins: number = 10) => {
+    setData(prev => {
+      const currentGame = prev.game || {
+        xp: 0,
+        level: 1,
+        coins: 0,
+        bossHp: 1000,
+        bossMaxHp: 1000,
+        highestCombo: 0,
+        unlockedBadges: [],
+        gamesPlayed: 0
+      };
+
+      const newXp = currentGame.xp + amount;
+      const newLevel = Math.floor(newXp / 250) + 1;
+      const leveledUp = newLevel > currentGame.level;
+
+      if (leveledUp) {
+        showToast(`🎉 Level Up! You reached Level ${newLevel}!`, 'success');
+        fireConfetti();
+      }
+
+      return {
+        ...prev,
+        game: {
+          ...currentGame,
+          xp: newXp,
+          level: newLevel,
+          coins: currentGame.coins + coins
+        }
+      };
+    });
+  };
+
+  const damageBoss = (dmg: number) => {
+    setData(prev => {
+      const currentGame = prev.game || {
+        xp: 0,
+        level: 1,
+        coins: 0,
+        bossHp: 1000,
+        bossMaxHp: 1000,
+        highestCombo: 0,
+        unlockedBadges: [],
+        gamesPlayed: 0
+      };
+
+      const newHp = Math.max(0, currentGame.bossHp - dmg);
+      if (newHp === 0 && currentGame.bossHp > 0) {
+        showToast('⚔️ Backlog Beast Defeated! +200 Bonus XP & Victory Badge!', 'success');
+        fireConfetti();
+      }
+
+      return {
+        ...prev,
+        game: {
+          ...currentGame,
+          bossHp: newHp === 0 ? currentGame.bossMaxHp : newHp,
+          coins: currentGame.coins + (newHp === 0 ? 50 : 5)
+        }
+      };
+    });
+  };
+
+  const recordGameResult = (score: number, maxCombo: number) => {
+    addXp(score, Math.round(score / 5));
+    setData(prev => {
+      const currentGame = prev.game || {
+        xp: 0,
+        level: 1,
+        coins: 0,
+        bossHp: 1000,
+        bossMaxHp: 1000,
+        highestCombo: 0,
+        unlockedBadges: [],
+        gamesPlayed: 0
+      };
+
+      return {
+        ...prev,
+        game: {
+          ...currentGame,
+          gamesPlayed: currentGame.gamesPlayed + 1,
+          highestCombo: Math.max(currentGame.highestCombo, maxCombo)
+        }
+      };
+    });
   };
 
   // Notes operations
@@ -626,6 +764,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         importBackup,
         resetDefaultData,
         loadDemoShowcase,
+        addXp,
+        damageBoss,
+        recordGameResult,
         clearAllData
       }}
     >

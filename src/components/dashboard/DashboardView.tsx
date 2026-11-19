@@ -82,6 +82,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('arena')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all hover:scale-[1.02]"
+            >
+              <span>🎮 Play Speed Recall</span>
+            </button>
+
+            <button
               onClick={onOpenQuickAdd}
               className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white font-semibold text-sm rounded-xl transition-all"
             >

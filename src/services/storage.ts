@@ -1,6 +1,17 @@
-import { AppData, UserProfile, Subject } from '../types';
+import { AppData, UserProfile, Subject, GameProfile } from '../types';
 
 const STORAGE_KEY = 'studyforge_app_data_v1';
+
+export const INITIAL_GAME_PROFILE: GameProfile = {
+  xp: 120,
+  level: 1,
+  coins: 40,
+  bossHp: 750,
+  bossMaxHp: 1000,
+  highestCombo: 3,
+  unlockedBadges: ['first_step'],
+  gamesPlayed: 1
+};
 
 // Clean, fresh starter profile
 export const FRESH_PROFILE: UserProfile = {
@@ -36,7 +47,8 @@ export const getInitialData = (): AppData => ({
   revisions: [],
   focusSessions: [],
   notes: [],
-  mockTests: []
+  mockTests: [],
+  game: { ...INITIAL_GAME_PROFILE }
 });
 
 // Demo dataset for optional loading
@@ -208,7 +220,8 @@ export const StorageService = {
         revisions: parsed.revisions || [],
         focusSessions: parsed.focusSessions || [],
         notes: parsed.notes || [],
-        mockTests: parsed.mockTests || []
+        mockTests: parsed.mockTests || [],
+        game: parsed.game ? { ...initial.game, ...parsed.game } : initial.game
       };
     } catch (e) {
       console.error('Failed to parse stored StudyForge data:', e);

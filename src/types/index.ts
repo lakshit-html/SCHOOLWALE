@@ -136,6 +136,17 @@ export interface MockTest {
   actionPlan: string;
 }
 
+export interface GameProfile {
+  xp: number;
+  level: number;
+  coins: number;
+  bossHp: number;
+  bossMaxHp: number;
+  highestCombo: number;
+  unlockedBadges: string[];
+  gamesPlayed: number;
+}
+
 export interface AppData {
   profile: UserProfile;
   subjects: Subject[];
@@ -146,4 +157,5 @@ export interface AppData {
   focusSessions: FocusSession[];
   notes: Note[];
   mockTests: MockTest[];
+  game?: GameProfile;
 }

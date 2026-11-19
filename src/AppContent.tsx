@@ -5,12 +5,14 @@ import { Sidebar } from './components/layout/Sidebar';
 import { NotificationToast } from './components/layout/NotificationToast';
 import { QuickAddModal } from './components/layout/QuickAddModal';
 import { TutorialModal } from './components/onboarding/TutorialModal';
+import { ParallaxBackground } from './components/layout/ParallaxBackground';
 
 import { DashboardView } from './components/dashboard/DashboardView';
 import { PlannerView } from './components/planner/PlannerView';
 import { BacklogView } from './components/backlog/BacklogView';
 import { RevisionView } from './components/revision/RevisionView';
 import { PomodoroView } from './components/timer/PomodoroView';
+import { StudyArenaView } from './components/game/StudyArenaView';
 import { NotesView } from './components/notes/NotesView';
 import { MockTestsView } from './components/tests/MockTestsView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
@@ -25,7 +27,10 @@ export const AppContent: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200 relative">
+      {/* 3D Parallax Atmospheric Background Layer */}
+      <ParallaxBackground />
+
       {/* Sidebar (Desktop fixed & Mobile drawer) */}
       <Sidebar
         isMobileOpen={isMobileSidebarOpen}
@@ -34,7 +39,7 @@ export const AppContent: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="lg:pl-64 flex flex-col flex-1 min-w-0">
+      <div className="lg:pl-64 flex flex-col flex-1 min-w-0 z-10">
         <Header
           onOpenQuickAdd={() => setIsQuickAddOpen(true)}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
@@ -52,6 +57,7 @@ export const AppContent: React.FC = () => {
           {activeTab === 'backlog' && <BacklogView />}
           {activeTab === 'revision' && <RevisionView />}
           {activeTab === 'pomodoro' && <PomodoroView />}
+          {activeTab === 'arena' && <StudyArenaView />}
           {activeTab === 'notes' && <NotesView />}
           {activeTab === 'tests' && <MockTestsView />}
           {activeTab === 'analytics' && <AnalyticsView />}
