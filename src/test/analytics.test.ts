@@ -5,22 +5,36 @@ import {
   calculateRevisionMetrics,
   calculateTestAnalytics
 } from '../services/analytics';
-import { getInitialData } from '../services/storage';
+import { getInitialData, getDemoShowcaseData } from '../services/storage';
 import { BacklogItem, MockTest, RevisionItem } from '../types';
 
 describe('StudyForge Analytics Engine', () => {
   it('computes accurate dashboard KPI metrics from real stored state', () => {
-    // Arrange
-    const initialData = getInitialData();
+    // Arrange: test with demo data
+    const demoData = getDemoShowcaseData();
 
     // Act
-    const metrics = calculateDashboardMetrics(initialData);
+    const metrics = calculateDashboardMetrics(demoData);
 
     // Assert
     expect(metrics.todayTargetHours).toBe(7);
     expect(metrics.currentStreak).toBe(5);
     expect(metrics.overallChapterCompletionPct).toBeGreaterThan(0);
     expect(metrics.upcomingRevisionsCount).toBeGreaterThan(0);
+  });
+
+  it('computes clean zeros on fresh startup state', () => {
+    // Arrange: fresh initial state
+    const freshData = getInitialData();
+
+    // Act
+    const metrics = calculateDashboardMetrics(freshData);
+
+    // Assert
+    expect(metrics.todayCompletedHours).toBe(0);
+    expect(metrics.currentStreak).toBe(0);
+    expect(metrics.totalBacklogHours).toBe(0);
+    expect(metrics.pendingTasksTodayCount).toBe(0);
   });
 
   it('computes accurate backlog forecast and estimated zero-debt date', () => {
@@ -72,7 +86,7 @@ describe('StudyForge Analytics Engine', () => {
     expect(forecast.totalPendingHours).toBe(2.5);
     expect(forecast.clearedHours).toBe(1.0);
     expect(forecast.criticalCount).toBe(1);
-    expect(forecast.estimatedCompletionDays).toBe(2); // 2.5h / 1.25h = 2 days
+    expect(forecast.estimatedCompletionDays).toBe(2);
   });
 
   it('computes revision compliance rate correctly', () => {

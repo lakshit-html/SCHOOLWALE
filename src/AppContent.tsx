@@ -4,6 +4,7 @@ import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { NotificationToast } from './components/layout/NotificationToast';
 import { QuickAddModal } from './components/layout/QuickAddModal';
+import { TutorialModal } from './components/onboarding/TutorialModal';
 
 import { DashboardView } from './components/dashboard/DashboardView';
 import { PlannerView } from './components/planner/PlannerView';
@@ -16,16 +17,20 @@ import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { SettingsView } from './components/settings/SettingsView';
 
 export const AppContent: React.FC = () => {
-  const { activeTab } = useApp();
+  const { activeTab, data } = useApp();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(
+    !data.profile.hasCompletedOnboarding
+  );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       {/* Sidebar (Desktop fixed & Mobile drawer) */}
       <Sidebar
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        onOpenTutorial={() => setIsTutorialOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -33,11 +38,15 @@ export const AppContent: React.FC = () => {
         <Header
           onOpenQuickAdd={() => setIsQuickAddOpen(true)}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+          onOpenTutorial={() => setIsTutorialOpen(true)}
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-fade-in">
           {activeTab === 'dashboard' && (
-            <DashboardView onOpenQuickAdd={() => setIsQuickAddOpen(true)} />
+            <DashboardView
+              onOpenQuickAdd={() => setIsQuickAddOpen(true)}
+              onOpenTutorial={() => setIsTutorialOpen(true)}
+            />
           )}
           {activeTab === 'planner' && <PlannerView />}
           {activeTab === 'backlog' && <BacklogView />}
@@ -55,6 +64,10 @@ export const AppContent: React.FC = () => {
       <QuickAddModal
         isOpen={isQuickAddOpen}
         onClose={() => setIsQuickAddOpen(false)}
+      />
+      <TutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
       />
     </div>
   );

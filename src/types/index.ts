@@ -20,6 +20,7 @@ export interface UserProfile {
   soundEnabled: boolean;
   avatarSeed: string;
   joinedDate: string;
+  hasCompletedOnboarding?: boolean;
 }
 
 export interface Subject {

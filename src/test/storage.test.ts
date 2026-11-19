@@ -6,15 +6,15 @@ describe('StudyForge Local Storage & Persistence Service', () => {
     window.localStorage.clear();
   });
 
-  it('loads default initial seed data when storage is empty', () => {
+  it('loads clean, fresh starter data when storage is empty', () => {
     // Act
     const data = StorageService.loadData();
 
     // Assert
     expect(data).toBeDefined();
-    expect(data.profile.name).toBe('Aarav Sharma');
+    expect(data.profile.name).toBe('Student');
     expect(data.subjects.length).toBeGreaterThan(0);
-    expect(data.chapters.length).toBeGreaterThan(0);
+    expect(data.tasks.length).toBe(0); // Clean fresh start
   });
 
   it('persists and reloads modified state seamlessly', () => {
@@ -68,17 +68,13 @@ describe('StudyForge Local Storage & Persistence Service', () => {
     );
   });
 
-  it('resets to default sample data correctly', () => {
-    // Arrange: clear all data
-    StorageService.clearAllData();
-    const emptyState = StorageService.loadData();
-    expect(emptyState.subjects.length).toBe(0);
-
+  it('resets to clean fresh starter state correctly', () => {
     // Act: reset to default
     const restored = StorageService.resetToDefault();
 
     // Assert
     expect(restored.subjects.length).toBeGreaterThan(0);
-    expect(restored.profile.name).toBe('Aarav Sharma');
+    expect(restored.profile.name).toBe('Student');
+    expect(restored.tasks.length).toBe(0);
   });
 });

@@ -11,6 +11,7 @@ import {
   BarChart3,
   Settings,
   Sparkles,
+  HelpCircle,
   X
 } from 'lucide-react';
 import { calculateDashboardMetrics } from '../../services/analytics';
@@ -18,9 +19,14 @@ import { calculateDashboardMetrics } from '../../services/analytics';
 interface SidebarProps {
   isMobileOpen: boolean;
   onCloseMobile: () => void;
+  onOpenTutorial: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isMobileOpen,
+  onCloseMobile,
+  onOpenTutorial
+}) => {
   const { activeTab, setActiveTab, data } = useApp();
   const metrics = calculateDashboardMetrics(data);
 
@@ -41,21 +47,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
       label: 'Smart Planner',
       icon: Calendar,
       badge: todayPendingTasks > 0 ? todayPendingTasks : undefined,
-      badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30'
+      badgeColor: 'bg-brand-500/15 text-brand-600 dark:text-brand-300 border-brand-500/30'
     },
     {
       id: 'backlog',
       label: 'Backlog Manager',
       icon: ClockAlert,
       badge: criticalBacklog > 0 ? criticalBacklog : undefined,
-      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+      badgeColor: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30'
     },
     {
       id: 'revision',
       label: 'Spaced Revision',
       icon: Repeat,
       badge: overdueRevisions > 0 ? overdueRevisions : undefined,
-      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+      badgeColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30'
     },
     { id: 'pomodoro', label: 'Focus Timer', icon: Timer },
     { id: 'notes', label: 'Notes Manager', icon: BookOpen },
@@ -80,22 +86,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
       )}
 
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-slate-800/80 bg-slate-950/95 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-950/95 flex flex-col justify-between transition-all duration-300 ease-in-out lg:translate-x-0 ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div>
           {/* Top Logo in Sidebar */}
-          <div className="h-16 px-6 border-b border-slate-800/60 flex items-center justify-between">
+          <div className="h-16 px-6 border-b border-slate-200 dark:border-slate-800/60 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center shadow-md shadow-brand-500/20">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center shadow-md shadow-brand-500/20">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-base tracking-tight text-white">StudyForge</span>
+              <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
+                StudyForge
+              </span>
             </div>
             <button
               onClick={onCloseMobile}
-              className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-md"
+              className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-md"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -114,12 +122,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                   onClick={() => handleSelectTab(item.id)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
                     isActive
-                      ? 'bg-brand-500/15 text-brand-300 shadow-sm border border-brand-500/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
+                      ? 'bg-brand-500/15 text-brand-700 dark:text-brand-300 shadow-sm border border-brand-500/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60 border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-brand-400' : 'text-slate-400'}`} />
+                    <Icon
+                      className={`w-4 h-4 ${
+                        isActive ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'
+                      }`}
+                    />
                     <span>{item.label}</span>
                   </div>
                   {item.badge !== undefined && (
@@ -135,25 +147,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
           </nav>
         </div>
 
-        {/* Bottom Productivity Widget */}
-        <div className="p-4 m-3 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800/80 shadow-inner">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-            <span>Today's Target</span>
-            <span className="font-semibold text-brand-300">
-              {metrics.todayCompletedHours}h / {metrics.todayTargetHours}h
-            </span>
+        {/* Bottom Section: Tutorial & Daily Target Widget */}
+        <div className="p-3 space-y-2">
+          {/* How it works button */}
+          <button
+            onClick={() => {
+              onOpenTutorial();
+              onCloseMobile();
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span>How StudyForge Works</span>
+          </button>
+
+          {/* Bottom Productivity Widget */}
+          <div className="p-4 rounded-2xl bg-slate-100 dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800/80 shadow-sm">
+            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1.5">
+              <span>Today's Target</span>
+              <span className="font-semibold text-brand-600 dark:text-brand-300 font-mono">
+                {metrics.todayCompletedHours}h / {metrics.todayTargetHours}h
+              </span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mb-2">
+              <div
+                className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 rounded-full transition-all duration-500"
+                style={{ width: `${metrics.todayProgressPct}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+              {metrics.todayProgressPct >= 100
+                ? '🎯 Target reached! Great job today.'
+                : `${Math.round((metrics.todayTargetHours - metrics.todayCompletedHours) * 10) / 10}h remaining to hit your daily goal.`}
+            </p>
           </div>
-          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-2.5">
-            <div
-              className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 rounded-full transition-all duration-500"
-              style={{ width: `${metrics.todayProgressPct}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-slate-400 leading-tight">
-            {metrics.todayProgressPct >= 100
-              ? '🎯 Target reached! Great job today.'
-              : `${Math.round((metrics.todayTargetHours - metrics.todayCompletedHours) * 10) / 10}h remaining to hit your daily goal.`}
-          </p>
         </div>
       </aside>
     </>

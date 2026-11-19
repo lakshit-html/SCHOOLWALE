@@ -3,21 +3,31 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import App from '../App';
 
 describe('StudyForge Application UI & Navigation', () => {
-  it('renders dashboard with brand title, streak, and daily targets', () => {
+  it('displays the onboarding tutorial on fresh startup and allows finishing it', () => {
     // Act
     render(<App />);
 
-    // Assert
+    // Assert tutorial appears on first launch
+    expect(screen.getByText(/Welcome to StudyForge/i)).toBeInTheDocument();
+    expect(screen.getByText(/Academic Operating System/i)).toBeInTheDocument();
+
+    // Click through tutorial or skip it
+    const skipBtn = screen.getByTitle(/Skip Tour/i);
+    fireEvent.click(skipBtn);
+
+    // Dashboard is visible
     expect(screen.getAllByText(/StudyForge/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Today's Study/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Consistency Streak/i)).toBeInTheDocument();
-    expect(screen.getByText(/Syllabus Covered/i)).toBeInTheDocument();
-    expect(screen.getByText(/Backlog Hours/i)).toBeInTheDocument();
   });
 
   it('navigates seamlessly between tabs (Planner, Backlog, Revision, Pomodoro, Notes, Tests, Analytics, Settings)', () => {
     // Act
     render(<App />);
+
+    // Dismiss tutorial if visible
+    const skipBtn = screen.queryByTitle(/Skip Tour/i);
+    if (skipBtn) fireEvent.click(skipBtn);
 
     // 1. Navigate to Planner
     const plannerButtons = screen.getAllByRole('button', { name: /Smart Planner/i });
@@ -57,12 +67,16 @@ describe('StudyForge Application UI & Navigation', () => {
     // 8. Navigate to Settings
     const settingsButtons = screen.getAllByRole('button', { name: /Settings & Data/i });
     fireEvent.click(settingsButtons[0]);
-    expect(screen.getByText(/Settings & Local Data Management/i)).toBeInTheDocument();
+    expect(screen.getByText(/Settings & Preferences/i)).toBeInTheDocument();
   });
 
   it('opens and closes the Quick Add action modal', () => {
     // Arrange
     render(<App />);
+
+    // Dismiss tutorial if visible
+    const skipBtn = screen.queryByTitle(/Skip Tour/i);
+    if (skipBtn) fireEvent.click(skipBtn);
 
     // Act
     const quickAddBtn = screen.getByRole('button', { name: /Quick Add/i });

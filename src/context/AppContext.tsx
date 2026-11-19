@@ -90,6 +90,7 @@ interface AppContextValue {
   exportBackup: () => void;
   importBackup: (jsonContent: string) => void;
   resetDefaultData: () => void;
+  loadDemoShowcase: () => void;
   clearAllData: () => void;
 }
 
@@ -570,7 +571,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const resetDefaultData = () => {
     const res = StorageService.resetToDefault();
     setData(res);
-    showToast('Restored sample study data', 'info');
+    showToast('Reset to clean starter state', 'info');
+  };
+
+  const loadDemoShowcase = () => {
+    const demo = StorageService.loadDemoShowcase();
+    setData(demo);
+    showToast('Loaded demo showcase data for preview', 'success');
   };
 
   const clearAllData = () => {
@@ -618,6 +625,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         exportBackup,
         importBackup,
         resetDefaultData,
+        loadDemoShowcase,
         clearAllData
       }}
     >
