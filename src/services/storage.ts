@@ -234,7 +234,22 @@ export const StorageService = {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
-      console.error('Failed to save StudyForge data to localStorage:', e);
+      console.warn('LocalStorage quota reached, pruning large file payloads for offline safety:', e);
+      try {
+        const lightweightData = {
+          ...data,
+          notes: data.notes.map(n => ({
+            ...n,
+            attachments: n.attachments?.map(a => ({
+              ...a,
+              dataUrl: a.dataUrl.length > 200000 ? '' : a.dataUrl
+            }))
+          }))
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweightData));
+      } catch (inner) {
+        console.error('Storage fallback failed:', inner);
+      }
     }
   },
 

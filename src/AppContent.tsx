@@ -19,6 +19,7 @@ import { MockTestsView } from './components/tests/MockTestsView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { QuickCalculatorModal } from './components/calculator/QuickCalculatorModal';
+import { ForgeAIBottomBar } from './components/ai/ForgeAIBottomBar';
 
 export const AppContent: React.FC = () => {
   const { activeTab, data } = useApp();
@@ -50,7 +51,7 @@ export const AppContent: React.FC = () => {
           onOpenCalculator={() => setIsCalculatorOpen(true)}
         />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-fade-in">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-fade-in pb-20 sm:pb-8">
           {activeTab === 'dashboard' && (
             <DashboardView
               onOpenQuickAdd={() => setIsQuickAddOpen(true)}
@@ -84,6 +85,9 @@ export const AppContent: React.FC = () => {
         isOpen={isTutorialOpen}
         onClose={() => setIsTutorialOpen(false)}
       />
+
+      {/* 24/7 AI Academic Mentor (Powered by Gemini) */}
+      <ForgeAIBottomBar />
     </div>
   );
 };

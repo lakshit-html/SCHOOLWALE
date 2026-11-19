@@ -169,13 +169,13 @@ export const PomodoroView: React.FC = () => {
         />
 
         {/* Tactile Mode Selector Switches */}
-        <div className="flex items-center rounded-2xl bg-slate-100 dark:bg-slate-950 p-1.5 border border-slate-200 dark:border-slate-800 shadow-inner mb-8 z-10">
+        <div className="flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-950 p-1.5 border border-slate-200 dark:border-slate-800 shadow-inner mb-6 sm:mb-8 z-10 flex-wrap gap-1 max-w-full">
           <button
             onClick={() => {
               setIsRunning(false);
               setMode('pomodoro');
             }}
-            className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
               mode === 'pomodoro'
                 ? 'bg-white dark:bg-brand-600 text-brand-600 dark:text-white shadow-[0_2px_4px_rgba(0,0,0,0.1)]'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -188,7 +188,7 @@ export const PomodoroView: React.FC = () => {
               setIsRunning(false);
               setMode('short_break');
             }}
-            className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
               mode === 'short_break'
                 ? 'bg-white dark:bg-cyan-600 text-cyan-600 dark:text-white shadow-[0_2px_4px_rgba(0,0,0,0.1)]'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -201,7 +201,7 @@ export const PomodoroView: React.FC = () => {
               setIsRunning(false);
               setMode('long_break');
             }}
-            className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
               mode === 'long_break'
                 ? 'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-[0_2px_4px_rgba(0,0,0,0.1)]'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'

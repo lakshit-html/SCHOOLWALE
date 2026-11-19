@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   PenTool,
   Pencil,
@@ -14,8 +14,10 @@ import {
   RotateCw,
   Trash2,
   Maximize2,
-  Minimize2
+  Minimize2,
+  X
 } from 'lucide-react';
+import { compressImageForMobile } from '../../services/blobStorage';
 
 type ToolType =
   | 'pen'
@@ -25,8 +27,7 @@ type ToolType =
   | 'ruler'
   | 'compass'
   | 'arrow'
-  | 'rectangle'
-  | 'text';
+  | 'rectangle';
 
 type BoardTheme = 'pw-dark' | 'ruled' | 'grid' | 'white' | 'pure-black';
 
@@ -47,7 +48,7 @@ export const WhiteboardView: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [activeTool, setActiveTool] = useState<ToolType>('pen');
-  const [activeColor, setActiveColor] = useState<string>('#facc15'); // PW yellow default
+  const [activeColor, setActiveColor] = useState<string>('#facc15'); // PW Yellow
   const [strokeWidth, setStrokeWidth] = useState<number>(4);
   const [boardTheme, setBoardTheme] = useState<BoardTheme>('pw-dark');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -55,7 +56,6 @@ export const WhiteboardView: React.FC = () => {
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [, setCurrentPos] = useState<{ x: number; y: number } | null>(null);
   const [liveInfo, setLiveInfo] = useState<string | null>(null);
 
   // Undo / Redo history
@@ -64,178 +64,165 @@ export const WhiteboardView: React.FC = () => {
 
   // Background PDF / Image
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
+  const [hasImage, setHasImage] = useState(false);
 
-  // Initialize Canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // Draw background helper
+  const drawBoardBackground = useCallback(
+    (ctx: CanvasRenderingContext2D, width: number, height: number, theme: BoardTheme) => {
+      ctx.save();
+      if (theme === 'pw-dark') {
+        // PhysicsWallah digital classroom board: Rich emerald slate
+        ctx.fillStyle = '#0b1914';
+        ctx.fillRect(0, 0, width, height);
 
-    const resizeCanvas = () => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      const width = rect.width;
-      const height = Math.max(680, window.innerHeight - 200);
-
-      // Save current content before resize
-      let ctx: CanvasRenderingContext2D | null = null;
-      try {
-        ctx = canvas.getContext('2d');
-      } catch {
-        // Safe fallback in environments without full canvas implementation
-      }
-      let prevData: ImageData | null = null;
-      if (ctx && canvas.width > 0 && canvas.height > 0) {
-        prevData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      if (ctx) {
-        drawBoardBackground(ctx, width, height, boardTheme);
-        if (backgroundImage) {
-          drawUploadedImage(ctx, backgroundImage, width, height);
+        // Dot coordinate matrix
+        ctx.fillStyle = '#164e3c44';
+        const spacing = 32;
+        for (let x = spacing; x < width; x += spacing) {
+          for (let y = spacing; y < height; y += spacing) {
+            ctx.beginPath();
+            ctx.arc(x, y, 1.3, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
-        if (prevData) {
-          ctx.putImageData(prevData, 0, 0);
-        } else {
-          // Push initial clean state to history
-          saveHistoryState(ctx);
+      } else if (theme === 'grid') {
+        // Engineering Graph Paper
+        ctx.fillStyle = '#0c1427';
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        const spacing = 25;
+        for (let x = spacing; x < width; x += spacing) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
         }
-      }
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    return () => window.removeEventListener('resize', resizeCanvas);
-  }, [boardTheme, backgroundImage]);
-
-  const drawBoardBackground = (
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    theme: BoardTheme
-  ) => {
-    ctx.save();
-    if (theme === 'pw-dark') {
-      // PhysicsWallah dark classroom board (Deep emerald slate)
-      ctx.fillStyle = '#0b1914';
-      ctx.fillRect(0, 0, width, height);
-
-      // Faint coordinate dot grid
-      ctx.fillStyle = '#164e3c33';
-      const spacing = 32;
-      for (let x = spacing; x < width; x += spacing) {
         for (let y = spacing; y < height; y += spacing) {
           ctx.beginPath();
-          ctx.arc(x, y, 1.2, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
         }
-      }
-    } else if (theme === 'grid') {
-      // Cartesian Engineering Graph
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1;
-      const spacing = 24;
-      for (let x = spacing; x < width; x += spacing) {
+      } else if (theme === 'ruled') {
+        // Ruled School Notebook
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        const lineSpacing = 32;
+        for (let y = 60; y < height; y += lineSpacing) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+        // Red vertical notebook margin line
+        ctx.strokeStyle = '#f43f5e55';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
+        ctx.moveTo(70, 0);
+        ctx.lineTo(70, height);
         ctx.stroke();
+      } else if (theme === 'white') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        const spacing = 28;
+        for (let x = spacing; x < width; x += spacing) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = spacing; y < height; y += spacing) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+      } else {
+        // Pure OLED Black
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
       }
-      for (let y = spacing; y < height; y += spacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-    } else if (theme === 'ruled') {
-      // Ruled Notebook Lines
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1;
-      const lineSpacing = 30;
-      for (let y = 60; y < height; y += lineSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-      // Red margin line
-      ctx.strokeStyle = '#f43f5e55';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(70, 0);
-      ctx.lineTo(70, height);
-      ctx.stroke();
-    } else if (theme === 'white') {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      const spacing = 28;
-      for (let x = spacing; x < width; x += spacing) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = spacing; y < height; y += spacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-    } else {
-      // Pure OLED Black
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
-    }
-    ctx.restore();
-  };
+      ctx.restore();
+    },
+    []
+  );
 
-  const drawUploadedImage = (
-    ctx: CanvasRenderingContext2D,
-    img: HTMLImageElement,
-    canvasW: number,
-    canvasH: number
-  ) => {
-    ctx.save();
-    const hRatio = (canvasW * 0.85) / img.width;
-    const vRatio = (canvasH * 0.85) / img.height;
-    const ratio = Math.min(hRatio, vRatio, 1);
-    const centerShiftX = (canvasW - img.width * ratio) / 2;
-    const centerShiftY = (canvasH - img.height * ratio) / 2;
+  const drawUploadedImage = useCallback(
+    (ctx: CanvasRenderingContext2D, img: HTMLImageElement, canvasW: number, canvasH: number) => {
+      ctx.save();
+      const hRatio = (canvasW * 0.9) / img.width;
+      const vRatio = (canvasH * 0.9) / img.height;
+      const ratio = Math.min(hRatio, vRatio, 1);
+      const centerShiftX = (canvasW - img.width * ratio) / 2;
+      const centerShiftY = (canvasH - img.height * ratio) / 2;
 
-    ctx.drawImage(
-      img,
-      0,
-      0,
-      img.width,
-      img.height,
-      centerShiftX,
-      centerShiftY,
-      img.width * ratio,
-      img.height * ratio
-    );
-    ctx.restore();
-  };
+      ctx.drawImage(
+        img,
+        0,
+        0,
+        img.width,
+        img.height,
+        centerShiftX,
+        centerShiftY,
+        img.width * ratio,
+        img.height * ratio
+      );
+      ctx.restore();
+    },
+    []
+  );
 
   const saveHistoryState = (ctx: CanvasRenderingContext2D) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const newHistory = history.slice(0, historyStep + 1);
-    newHistory.push(data);
-    if (newHistory.length > 25) newHistory.shift();
-    setHistory(newHistory);
-    setHistoryStep(newHistory.length - 1);
+    try {
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      setHistory(prev => {
+        const next = prev.slice(0, historyStep + 1);
+        next.push(data);
+        if (next.length > 25) next.shift();
+        return next;
+      });
+      setHistoryStep(prev => Math.min(prev + 1, 24));
+    } catch {
+      // Ignore in non-canvas environments
+    }
   };
+
+  // Re-render canvas on resize, theme change, or background change
+  // Crucial fix: Do NOT stamp uninitialized or stale prevData on theme switch!
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const rect = container.getBoundingClientRect();
+    const width = Math.max(320, rect.width || window.innerWidth - 32);
+    const height = Math.max(500, window.innerHeight - 240);
+
+    canvas.width = width;
+    canvas.height = height;
+
+    let ctx: CanvasRenderingContext2D | null = null;
+    try {
+      ctx = canvas.getContext('2d');
+    } catch {
+      return;
+    }
+
+    if (ctx) {
+      drawBoardBackground(ctx, width, height, boardTheme);
+      if (backgroundImage) {
+        drawUploadedImage(ctx, backgroundImage, width, height);
+      }
+      saveHistoryState(ctx);
+    }
+  }, [boardTheme, backgroundImage, drawBoardBackground, drawUploadedImage]);
 
   const handleUndo = () => {
     if (historyStep <= 0) return;
@@ -245,8 +232,10 @@ export const WhiteboardView: React.FC = () => {
     if (!ctx) return;
 
     const nextStep = historyStep - 1;
-    ctx.putImageData(history[nextStep], 0, 0);
-    setHistoryStep(nextStep);
+    if (history[nextStep]) {
+      ctx.putImageData(history[nextStep], 0, 0);
+      setHistoryStep(nextStep);
+    }
   };
 
   const handleRedo = () => {
@@ -257,8 +246,10 @@ export const WhiteboardView: React.FC = () => {
     if (!ctx) return;
 
     const nextStep = historyStep + 1;
-    ctx.putImageData(history[nextStep], 0, 0);
-    setHistoryStep(nextStep);
+    if (history[nextStep]) {
+      ctx.putImageData(history[nextStep], 0, 0);
+      setHistoryStep(nextStep);
+    }
   };
 
   const handleClearBoard = () => {
@@ -274,34 +265,28 @@ export const WhiteboardView: React.FC = () => {
     saveHistoryState(ctx);
   };
 
-  // Drawing event handlers
-  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  };
-
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const coords = getCanvasCoords(e);
-    setIsDrawing(true);
-    setStartPos(coords);
-    setCurrentPos(coords);
-
+  const handleRemoveImage = () => {
+    setBackgroundImage(null);
+    setHasImage(false);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    drawBoardBackground(ctx, canvas.width, canvas.height, boardTheme);
+    saveHistoryState(ctx);
+  };
 
-    ctx.beginPath();
-    ctx.moveTo(coords.x, coords.y);
-
-    if (activeTool === 'pen' || activeTool === 'pencil' || activeTool === 'marker' || activeTool === 'eraser') {
-      applyStrokeSettings(ctx);
-    }
+  // Unified Pointer & Touch coordinate resolver
+  const getPointerCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
   };
 
   const applyStrokeSettings = (ctx: CanvasRenderingContext2D) => {
@@ -314,36 +299,56 @@ export const WhiteboardView: React.FC = () => {
       ctx.globalAlpha = 0.85;
     } else if (activeTool === 'marker') {
       ctx.strokeStyle = activeColor;
-      ctx.lineWidth = Math.max(22, strokeWidth * 4);
+      ctx.lineWidth = Math.max(20, strokeWidth * 3.5);
       ctx.globalAlpha = 0.35;
     } else if (activeTool === 'eraser') {
-      // Eraser matches board background or acts as clearRect
       ctx.strokeStyle = boardTheme === 'white' ? '#ffffff' : '#0b1914';
-      ctx.lineWidth = strokeWidth * 6;
+      ctx.lineWidth = Math.max(16, strokeWidth * 5);
       ctx.globalAlpha = 1.0;
     } else {
-      // Regular smooth Pen
       ctx.strokeStyle = activeColor;
       ctx.lineWidth = strokeWidth;
       ctx.globalAlpha = 1.0;
     }
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPos) return;
-    const coords = getCanvasCoords(e);
-    setCurrentPos(coords);
+  // Pointer event handlers (Work seamlessly on Desktop mouse, iPad Stylus, Android Touch!)
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    const coords = getPointerCoords(e);
+    setIsDrawing(true);
+    setStartPos(coords);
 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    if (activeTool === 'pen' || activeTool === 'pencil' || activeTool === 'marker' || activeTool === 'eraser') {
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+    applyStrokeSettings(ctx);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !startPos) return;
+    e.preventDefault();
+
+    const coords = getPointerCoords(e);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (['pen', 'pencil', 'marker', 'eraser'].includes(activeTool)) {
       ctx.lineTo(coords.x, coords.y);
       ctx.stroke();
     } else if (activeTool === 'ruler') {
-      // Straight line with length & angle calculation
       if (historyStep >= 0 && history[historyStep]) {
         ctx.putImageData(history[historyStep], 0, 0);
       }
@@ -359,7 +364,6 @@ export const WhiteboardView: React.FC = () => {
       const angleDeg = Math.round((Math.atan2(dy, dx) * 180) / Math.PI);
       setLiveInfo(`📏 Ruler: ${lengthPx}px (${(lengthPx / 37.8).toFixed(1)}cm) • ${angleDeg}°`);
     } else if (activeTool === 'compass') {
-      // Circle with radius calculation
       if (historyStep >= 0 && history[historyStep]) {
         ctx.putImageData(history[historyStep], 0, 0);
       }
@@ -372,9 +376,8 @@ export const WhiteboardView: React.FC = () => {
       ctx.arc(startPos.x, startPos.y, radius, 0, Math.PI * 2);
       ctx.stroke();
 
-      setLiveInfo(`⭕ Compass: Radius = ${radius}px (Area: ${Math.round(Math.PI * radius * radius)}px²)`);
+      setLiveInfo(`⭕ Compass: Radius = ${radius}px • Area: ${Math.round(Math.PI * radius * radius)}px²`);
     } else if (activeTool === 'arrow') {
-      // Physics Vector Arrow
       if (historyStep >= 0 && history[historyStep]) {
         ctx.putImageData(history[historyStep], 0, 0);
       }
@@ -389,11 +392,17 @@ export const WhiteboardView: React.FC = () => {
     }
   };
 
-  const stopDrawing = () => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
+    e.preventDefault();
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
     setIsDrawing(false);
     setStartPos(null);
-    setCurrentPos(null);
     setLiveInfo(null);
 
     const canvas = canvasRef.current;
@@ -412,7 +421,7 @@ export const WhiteboardView: React.FC = () => {
     toX: number,
     toY: number
   ) => {
-    const headLength = 15;
+    const headLength = 16;
     const dx = toX - fromX;
     const dy = toY - fromY;
     const angle = Math.atan2(dy, dx);
@@ -422,51 +431,49 @@ export const WhiteboardView: React.FC = () => {
     ctx.lineTo(toX, toY);
     ctx.stroke();
 
-    // Arrowhead
     ctx.beginPath();
     ctx.moveTo(toX, toY);
-    ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+    ctx.lineTo(
+      toX - headLength * Math.cos(angle - Math.PI / 6),
+      toY - headLength * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+      toX - headLength * Math.cos(angle + Math.PI / 6),
+      toY - headLength * Math.sin(angle + Math.PI / 6)
+    );
     ctx.lineTo(toX, toY);
     ctx.fillStyle = activeColor;
     ctx.fill();
   };
 
-  // Upload PDF or Image onto Whiteboard
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Slide / Question Image
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = event => {
-        const img = new Image();
-        img.onload = () => {
-          setBackgroundImage(img);
-          const canvas = canvasRef.current;
-          if (canvas) {
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              drawUploadedImage(ctx, img, canvas.width, canvas.height);
-              saveHistoryState(ctx);
-            }
-          }
-        };
-        img.src = event.target?.result as string;
+    try {
+      const dataUrl = await compressImageForMobile(file);
+      const img = new Image();
+      img.onload = () => {
+        setBackgroundImage(img);
+        setHasImage(true);
       };
-      reader.readAsDataURL(file);
-    } else {
-      // If PDF or other document format
-      alert('For best resolution on the digital board, select an image/slide of your DPP or question paper.');
+      img.src = dataUrl;
+    } catch (err) {
+      console.error('Slide upload error:', err);
+      alert('Could not load image. Please select a valid PNG or JPG file.');
     }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Export board as high-resolution PNG
   const handleExportPNG = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement('a');
-    link.download = `StudyForge-Whiteboard-${new Date().toISOString().slice(0, 10)}.png`;
+    link.download = `StudyForge-LectureNotes-${new Date().toISOString().slice(0, 10)}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
@@ -474,35 +481,35 @@ export const WhiteboardView: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col space-y-4 pb-12 transition-all ${
-        isFullscreen ? 'fixed inset-0 z-50 p-4 bg-slate-950 h-screen overflow-hidden' : ''
+      className={`flex flex-col space-y-3 pb-12 transition-all ${
+        isFullscreen ? 'fixed inset-0 z-50 p-2 sm:p-4 bg-slate-950 h-screen overflow-hidden' : ''
       }`}
     >
-      {/* Top Header & Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 dark:bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-xl backdrop-blur-md">
-        {/* Left: Tools Bar */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Responsive Top Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-white/90 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl backdrop-blur-md">
+        {/* Drawing Tools (Horizontally scrollable on mobile) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setActiveTool('pen')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'pen'
-                ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-brand-600 text-white shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="Pen (Smooth Ink)"
           >
             <PenTool className="w-4 h-4" />
-            <span className="hidden sm:inline">Pen</span>
+            <span>Pen</span>
           </button>
 
           <button
             onClick={() => setActiveTool('pencil')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'pencil'
-                ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-brand-600 text-white shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="Pencil (Fine Sketch)"
+            title="Pencil (Fine Line)"
           >
             <Pencil className="w-4 h-4" />
             <span className="hidden sm:inline">Pencil</span>
@@ -510,12 +517,12 @@ export const WhiteboardView: React.FC = () => {
 
           <button
             onClick={() => setActiveTool('marker')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'marker'
-                ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-brand-600 text-white shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="Highlighter / Marker"
+            title="Highlighter Marker"
           >
             <Highlighter className="w-4 h-4" />
             <span className="hidden sm:inline">Marker</span>
@@ -523,28 +530,28 @@ export const WhiteboardView: React.FC = () => {
 
           <button
             onClick={() => setActiveTool('eraser')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'eraser'
-                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-rose-600 text-white shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="Eraser"
           >
             <Eraser className="w-4 h-4" />
-            <span className="hidden sm:inline">Eraser</span>
+            <span>Eraser</span>
           </button>
 
-          <div className="h-6 w-px bg-slate-700 mx-1" />
+          <div className="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-1 shrink-0" />
 
-          {/* Academic Geometry Tools */}
+          {/* Geometry Tools */}
           <button
             onClick={() => setActiveTool('ruler')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'ruler'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="Ruler (Straight Line with cm & angle HUD)"
+            title="Ruler (Line with HUD)"
           >
             <Minus className="w-4 h-4 rotate-45" />
             <span className="hidden md:inline">Ruler</span>
@@ -552,12 +559,12 @@ export const WhiteboardView: React.FC = () => {
 
           <button
             onClick={() => setActiveTool('compass')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'compass'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="Compass (Perfect Circles with radius HUD)"
+            title="Compass (Circle with HUD)"
           >
             <Circle className="w-4 h-4" />
             <span className="hidden md:inline">Compass</span>
@@ -565,40 +572,39 @@ export const WhiteboardView: React.FC = () => {
 
           <button
             onClick={() => setActiveTool('arrow')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'arrow'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="Physics Vector / Arrow"
+            title="Physics Vector Arrow"
           >
             <ArrowRight className="w-4 h-4" />
-            <span className="hidden md:inline">Vector</span>
           </button>
 
           <button
             onClick={() => setActiveTool('rectangle')}
-            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
               activeTool === 'rectangle'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="Rectangle Box"
+            title="Rectangle"
           >
             <Square className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Center: Color & Thickness */}
-        <div className="flex items-center gap-2">
+        {/* Colors, Themes & Actions */}
+        <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
           {/* Color palette */}
-          <div className="flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
             {COLOR_PALETTE.map(c => (
               <button
                 key={c.hex}
                 onClick={() => setActiveColor(c.hex)}
-                className={`w-6 h-6 rounded-lg transition-transform ${
-                  activeColor === c.hex ? 'scale-125 ring-2 ring-white shadow-lg' : 'hover:scale-110'
+                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg transition-transform ${
+                  activeColor === c.hex ? 'scale-125 ring-2 ring-white shadow-md' : 'hover:scale-110'
                 }`}
                 style={{ backgroundColor: c.hex }}
                 title={c.name}
@@ -606,66 +612,73 @@ export const WhiteboardView: React.FC = () => {
             ))}
           </div>
 
-          {/* Stroke Width Slider */}
-          <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-slate-950/70 rounded-xl border border-slate-800">
-            <span className="text-[10px] font-mono text-slate-400">Width</span>
+          {/* Stroke Width */}
+          <div className="hidden lg:flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
             <input
               type="range"
               min="1"
-              max="20"
+              max="24"
               value={strokeWidth}
               onChange={e => setStrokeWidth(parseInt(e.target.value))}
-              className="w-16 h-1 accent-teal-400 cursor-pointer"
+              className="w-14 h-1 accent-brand-500 cursor-pointer"
             />
-            <span className="text-[11px] font-mono text-teal-300 w-4">{strokeWidth}</span>
+            <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400 w-4">{strokeWidth}</span>
           </div>
-        </div>
 
-        {/* Right: Board Themes, Import Image, Export & Actions */}
-        <div className="flex items-center gap-1.5">
-          {/* Board Theme Selector */}
+          {/* Board Themes dropdown */}
           <select
             value={boardTheme}
             onChange={e => setBoardTheme(e.target.value as BoardTheme)}
-            className="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+            className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
           >
             <option value="pw-dark">PW Dark Board</option>
-            <option value="grid">Cartesian Grid</option>
             <option value="ruled">Ruled Notebook</option>
-            <option value="white">Dry-Erase White</option>
+            <option value="grid">Cartesian Grid</option>
+            <option value="white">Whiteboard</option>
             <option value="pure-black">OLED Pure Black</option>
           </select>
 
-          {/* Upload PDF / Image onto Board */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors flex items-center gap-1"
-            title="Import Lecture Slide / DPP Image to Annotate"
+          {/* Upload Slide / Question Image */}
+          <label
+            className="cursor-pointer p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 text-xs font-semibold"
+            title="Import Lecture Slide or Problem"
           >
-            <Upload className="w-4 h-4 text-teal-400" />
-            <span className="hidden lg:inline text-xs font-semibold">Import Slide/DPP</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.pdf"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
+            <Upload className="w-4 h-4 text-brand-500" />
+            <span className="hidden sm:inline">Import Slide</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
+
+          {/* Remove Slide Image Button (User requested!) */}
+          {hasImage && (
+            <button
+              onClick={handleRemoveImage}
+              className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-500 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
+              title="Remove Background Image"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Remove Slide</span>
+            </button>
+          )}
 
           {/* Undo / Redo */}
           <button
             onClick={handleUndo}
             disabled={historyStep <= 0}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30"
-            title="Undo (Ctrl+Z)"
+            className="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-20"
+            title="Undo"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
           <button
             onClick={handleRedo}
             disabled={historyStep >= history.length - 1}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30"
+            className="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-20"
             title="Redo"
           >
             <RotateCw className="w-4 h-4" />
@@ -674,7 +687,7 @@ export const WhiteboardView: React.FC = () => {
           {/* Clear Board */}
           <button
             onClick={handleClearBoard}
-            className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
             title="Clear Board"
           >
             <Trash2 className="w-4 h-4" />
@@ -683,46 +696,47 @@ export const WhiteboardView: React.FC = () => {
           {/* Export PNG */}
           <button
             onClick={handleExportPNG}
-            className="px-3 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-teal-500/20"
-            title="Download Handwritten Notes"
+            className="p-2 sm:px-3 sm:py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-600/20"
+            title="Save PNG Notes"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Save PNG</span>
           </button>
 
-          {/* Fullscreen toggle */}
+          {/* Fullscreen */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Teacher Fullscreen Mode'}
+            className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+            title="Fullscreen Mode"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Live Measurement HUD (Ruler & Compass live dimensions) */}
+      {/* Dynamic Measurement HUD (Ruler & Compass dimensions) */}
       {liveInfo && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-40 bg-slate-950/90 border border-teal-500/60 text-teal-300 px-4 py-1.5 rounded-full text-xs font-mono font-bold shadow-2xl backdrop-blur-md animate-pulse">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-40 bg-slate-950/95 border border-brand-500 text-brand-300 px-4 py-1.5 rounded-full text-xs font-mono font-bold shadow-2xl animate-pulse">
           {liveInfo}
         </div>
       )}
 
-      {/* Digital Blackboard Canvas Surface */}
-      <div className="flex-1 w-full rounded-3xl overflow-hidden border-2 border-slate-800/80 shadow-2xl relative bg-slate-950 cursor-crosshair">
+      {/* Canvas Surface with Touch-Action None for Mobile */}
+      <div className="flex-1 w-full rounded-3xl overflow-hidden border-2 border-slate-300 dark:border-slate-800/80 shadow-2xl relative bg-slate-950 cursor-crosshair">
         <canvas
           ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          className="w-full h-full block touch-none"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          style={{ touchAction: 'none' }}
+          className="w-full h-full block"
         />
 
-        {/* PhysicsWallah / Digital Teacher Watermark */}
-        <div className="absolute bottom-4 right-5 pointer-events-none select-none flex items-center gap-2 opacity-40 hover:opacity-80 transition-opacity">
+        {/* PhysicsWallah Smart Classroom Branding Watermark */}
+        <div className="absolute bottom-4 right-5 pointer-events-none select-none flex items-center gap-2 opacity-30 hover:opacity-70 transition-opacity">
           <div className="w-6 h-6 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center font-black text-xs">
-            SF
+            PW
           </div>
           <span className="text-xs font-bold tracking-wider text-slate-400">
             StudyForge Smart Teacher Board

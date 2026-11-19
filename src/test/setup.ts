@@ -21,6 +21,9 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
 
+// Polyfill scrollIntoView for jsdom
+window.HTMLElement.prototype.scrollIntoView = () => {};
+
 // Mock HTMLCanvasElement.prototype.getContext for jsdom
 HTMLCanvasElement.prototype.getContext = (() => {
   return {

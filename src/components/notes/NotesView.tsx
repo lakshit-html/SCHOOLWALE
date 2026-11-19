@@ -16,17 +16,37 @@ import {
   Download,
   X,
   Layers,
-  Video
+  Video,
+  FolderPlus
 } from 'lucide-react';
 import { Note, NoteAttachment } from '../../types';
+import { MathFormula } from '../common/MathFormula';
+import { blobStorage, compressImageForMobile } from '../../services/blobStorage';
 
 export const NotesView: React.FC = () => {
-  const { data, addNote, updateNote, deleteNote, togglePinNote, showToast } = useApp();
+  const {
+    data,
+    addNote,
+    updateNote,
+    deleteNote,
+    togglePinNote,
+    addChapter,
+    addSubject,
+    showToast
+  } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedChapter, setSelectedChapter] = useState<string>('all');
   const [activeNoteId, setActiveNoteId] = useState<string | null>(data.notes[0]?.id || null);
+
+  // New Chapter / Subject modal states
+  const [showAddChapterModal, setShowAddChapterModal] = useState(false);
+  const [newChapterTitle, setNewChapterTitle] = useState('');
+  const [newChapterSubjectId, setNewChapterSubjectId] = useState(data.subjects[0]?.id || '');
+
+  const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState('');
 
   // New Note / Editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -119,20 +139,16 @@ export const NotesView: React.FC = () => {
     setIsEditing(true);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach(file => {
-      // 15MB limit per file check
-      if (file.size > 15 * 1024 * 1024) {
-        showToast(`File ${file.name} exceeds 15MB limit.`, 'warning');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = ev => {
-        const dataUrl = ev.target?.result as string;
+    for (const file of Array.from(files)) {
+      try {
+        // Safe downscale of mobile camera photos to prevent memory crashes
+        const dataUrl = await compressImageForMobile(file);
         const newAttachment: NoteAttachment = {
           id: `att_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
           name: file.name,
@@ -142,17 +158,51 @@ export const NotesView: React.FC = () => {
           uploadedAt: new Date().toISOString()
         };
 
+        // Persist file into IndexedDB for persistent offline storage
+        await blobStorage.saveFile(newAttachment.id, dataUrl, newAttachment.name, newAttachment.type);
+
         setEditAttachments(prev => [...prev, newAttachment]);
         showToast(`Attached ${file.name}`, 'success');
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (err) {
+        console.error('File read error:', err);
+        showToast(`Failed to load ${file.name}`, 'error');
+      }
+    }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleRemoveAttachment = (attId: string) => {
     setEditAttachments(prev => prev.filter(a => a.id !== attId));
+  };
+
+  const handleCreateChapter = () => {
+    if (!newChapterTitle.trim()) return;
+    addChapter({
+      subjectId: newChapterSubjectId || data.subjects[0]?.id || '',
+      title: newChapterTitle.trim(),
+      totalLectures: 10,
+      completedLectures: 0,
+      status: 'in_progress',
+      priority: 'high',
+      difficulty: 'moderate',
+      notesCount: 0
+    });
+    setNewChapterTitle('');
+    setShowAddChapterModal(false);
+    showToast(`Chapter "${newChapterTitle.trim()}" created!`, 'success');
+  };
+
+  const handleCreateSubject = () => {
+    if (!newSubjectName.trim()) return;
+    addSubject({
+      name: newSubjectName.trim(),
+      color: '#06b6d4',
+      icon: 'BookOpen'
+    });
+    setNewSubjectName('');
+    setShowAddSubjectModal(false);
+    showToast(`Subject "${newSubjectName.trim()}" added!`, 'success');
   };
 
   const handleSaveNote = () => {
@@ -195,13 +245,31 @@ export const NotesView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleStartNewNote}
-          className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-brand-600/20 transition-all hover:scale-[1.02]"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Lecture Note</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowAddChapterModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 transition-all shadow-sm"
+          >
+            <FolderPlus className="w-4 h-4 text-teal-500" />
+            <span>+ Add Chapter</span>
+          </button>
+
+          <button
+            onClick={() => setShowAddSubjectModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 transition-all shadow-sm"
+          >
+            <Layers className="w-4 h-4 text-cyan-500" />
+            <span>+ Add Subject</span>
+          </button>
+
+          <button
+            onClick={handleStartNewNote}
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-brand-600/20 transition-all hover:scale-[1.02]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Lecture Note</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Two-Column Master/Detail Layout */}
@@ -438,21 +506,18 @@ export const NotesView: React.FC = () => {
                       <Upload className="w-3.5 h-3.5 text-brand-500" />
                       Attached Lecture Files & PDFs
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-2.5 py-1 bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
-                    >
-                      <Upload className="w-3 h-3" /> Upload from Computer
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      accept="*/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
+                    <label className="cursor-pointer px-2.5 py-1 bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-300 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shadow-sm">
+                      <Upload className="w-3 h-3" />
+                      <span>Upload from Device</span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf,.txt,.doc,.docx"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
 
                   {editAttachments.length === 0 ? (
@@ -637,7 +702,7 @@ export const NotesView: React.FC = () => {
 
                   {/* Content viewer */}
                   <div className="mt-4 text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap font-sans bg-slate-50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80">
-                    {activeNote.content}
+                    <MathFormula text={activeNote.content} />
                   </div>
                 </div>
               </div>
@@ -647,6 +712,115 @@ export const NotesView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Add Chapter Modal */}
+      {showAddChapterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-teal-500" />
+                Add New Chapter
+              </h4>
+              <button
+                onClick={() => setShowAddChapterModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Subject</label>
+              <select
+                value={newChapterSubjectId}
+                onChange={e => setNewChapterSubjectId(e.target.value)}
+                className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+              >
+                {data.subjects.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Chapter Title</label>
+              <input
+                type="text"
+                placeholder="e.g. Thermodynamics, Kinematics, Equilibrium"
+                value={newChapterTitle}
+                onChange={e => setNewChapterTitle(e.target.value)}
+                className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowAddChapterModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateChapter}
+                disabled={!newChapterTitle.trim()}
+                className="px-5 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/20"
+              >
+                Create Chapter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Subject Modal */}
+      {showAddSubjectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-cyan-500" />
+                Add New Subject / Class Track
+              </h4>
+              <button
+                onClick={() => setShowAddSubjectModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Subject Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Physics - Class 11, Organic Chemistry, Botony"
+                value={newSubjectName}
+                onChange={e => setNewSubjectName(e.target.value)}
+                className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowAddSubjectModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateSubject}
+                disabled={!newSubjectName.trim()}
+                className="px-5 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-600/20"
+              >
+                Add Subject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Attachment Preview Modal (For PDFs & Images) */}
       {previewAttachment && (

@@ -127,4 +127,22 @@ describe('StudyForge Application UI & Navigation', () => {
     // Result should be 15
     expect(screen.getByText('15')).toBeInTheDocument();
   });
+
+  it('opens ForgeAI academic tutor drawer from the bottom button', () => {
+    // Arrange
+    render(<App />);
+
+    // Dismiss tutorial if visible
+    const skipBtn = screen.queryByTitle(/Skip Tour/i);
+    if (skipBtn) fireEvent.click(skipBtn);
+
+    // Open AI assistant
+    const aiTriggerBtn = screen.getByRole('button', { name: /Ask ForgeAI Tutor/i });
+    fireEvent.click(aiTriggerBtn);
+
+    // Assert drawer is open
+    expect(screen.getByText(/ForgeAI Mentor/i)).toBeInTheDocument();
+    expect(screen.getByText(/Gemini Flash/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Ask any topic, formula derivation/i)).toBeInTheDocument();
+  });
 });

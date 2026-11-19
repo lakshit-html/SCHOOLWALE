@@ -13,8 +13,11 @@ import {
   Trash2,
   ShieldCheck,
   Check,
-  Sparkles
+  Sparkles,
+  Bot,
+  Key
 } from 'lucide-react';
+import { geminiService } from '../../services/gemini';
 
 export const SettingsView: React.FC = () => {
   const {
@@ -38,6 +41,17 @@ export const SettingsView: React.FC = () => {
   // Confirm dialogs
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Gemini API Key state
+  const [geminiKeyInput, setGeminiKeyInput] = useState(() => geminiService.getApiKey());
+  const [keySavedMessage, setKeySavedMessage] = useState(false);
+
+  const handleSaveGeminiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    geminiService.setApiKey(geminiKeyInput);
+    setKeySavedMessage(true);
+    setTimeout(() => setKeySavedMessage(false), 2500);
+  };
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,6 +317,49 @@ export const SettingsView: React.FC = () => {
               <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
             </label>
           </div>
+        </div>
+
+        {/* ForgeAI Gemini API Key Configuration */}
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center gap-2">
+            <Bot className="w-4 h-4 text-brand-500" />
+            <h4 className="text-xs uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
+              ForgeAI Student Tutor (Gemini API)
+            </h4>
+          </div>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Enter your Google Gemini API key to enable live AI question answering, formula explanations, and numerical problem solving. Your key is stored securely in your browser&apos;s localStorage and is never shared.
+          </p>
+
+          <form onSubmit={handleSaveGeminiKey} className="space-y-3 max-w-xl">
+            <div className="relative">
+              <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="password"
+                value={geminiKeyInput}
+                onChange={e => setGeminiKeyInput(e.target.value)}
+                placeholder="AIzaSy... or AQ.Ab8..."
+                className="w-full pl-9 pr-24 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-brand-500 font-mono text-slate-800 dark:text-slate-200"
+              />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-sm"
+              >
+                {keySavedMessage ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-300" /> Saved!
+                  </>
+                ) : (
+                  'Save Key'
+                )}
+              </button>
+            </div>
+            {keySavedMessage && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                <Check className="w-3 h-3" /> API key updated successfully! ForgeAI is ready.
+              </p>
+            )}
+          </form>
         </div>
 
         {/* State Presets */}

@@ -12,10 +12,14 @@ import {
   CheckCircle2,
   XCircle,
   Award,
-  GraduationCap
+  GraduationCap,
+  Scissors,
+  Snowflake,
+  Lightbulb
 } from 'lucide-react';
 import { soundEffects } from '../../services/audio';
 import { fireConfetti } from '../../utils/confetti';
+import { MathFormula } from '../common/MathFormula';
 
 export type AcademicGrade = 'Class 9' | 'Class 10' | 'Class 11' | 'Class 12' | 'JEE / NEET';
 
@@ -364,6 +368,13 @@ export const StudyArenaView: React.FC = () => {
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
 
+  // Power-Ups & Gamification Battle FX
+  const [eliminatedIndices, setEliminatedIndices] = useState<number[]>([]);
+  const [usedFiftyFifty, setUsedFiftyFifty] = useState(false);
+  const [usedFreeze, setUsedFreeze] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [floatingDamage, setFloatingDamage] = useState<string | null>(null);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -396,6 +407,31 @@ export const StudyArenaView: React.FC = () => {
     setSelectedAnswer(null);
     setIsAnswerRevealed(false);
     setIsGameOver(false);
+    setEliminatedIndices([]);
+    setUsedFiftyFifty(false);
+    setUsedFreeze(false);
+    setShowHint(false);
+    setFloatingDamage(null);
+  };
+
+  const handleFiftyFifty = () => {
+    if (usedFiftyFifty || isAnswerRevealed) return;
+    const currentQ = gradeQuestions[qIndex % gradeQuestions.length];
+    const wrongIndices = currentQ.options
+      .map((_, i) => i)
+      .filter(i => i !== currentQ.correctIndex);
+    // Pick two wrong indices to eliminate
+    const toEliminate = wrongIndices.slice(0, 2);
+    setEliminatedIndices(toEliminate);
+    setUsedFiftyFifty(true);
+    soundEffects.playTactileClick();
+  };
+
+  const handleTimeFreeze = () => {
+    if (usedFreeze) return;
+    setTimeRemaining(prev => prev + 15);
+    setUsedFreeze(true);
+    soundEffects.playTactileClick();
   };
 
   const handleEndGame = () => {
@@ -418,11 +454,13 @@ export const StudyArenaView: React.FC = () => {
     if (isCorrect) {
       soundEffects.playCompletionBeep();
       const newCombo = combo + 1;
-      const points = 20 * (newCombo >= 3 ? 2 : 1);
+      const points = 25 * (newCombo >= 3 ? 2 : 1);
       setCombo(newCombo);
       setMaxSessionCombo(prev => Math.max(prev, newCombo));
       setScore(prev => prev + points);
-      damageBoss(points);
+      damageBoss(points * 2);
+      setFloatingDamage(`💥 -${points * 2} CRIT!`);
+      setTimeout(() => setFloatingDamage(null), 1200);
     } else {
       setCombo(0);
     }
@@ -430,6 +468,8 @@ export const StudyArenaView: React.FC = () => {
     setTimeout(() => {
       setSelectedAnswer(null);
       setIsAnswerRevealed(false);
+      setEliminatedIndices([]);
+      setShowHint(false);
       setQIndex(prev => prev + 1);
     }, 1200);
   };
@@ -612,8 +652,63 @@ export const StudyArenaView: React.FC = () => {
                 </div>
 
                 <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-relaxed">
-                  {currentQuestion.question}
+                  <MathFormula text={currentQuestion.question} />
                 </h4>
+
+                {/* Academic Power-Ups & Lifelines Bar */}
+                <div className="flex items-center gap-2 pt-1 pb-2">
+                  <button
+                    type="button"
+                    disabled={usedFiftyFifty || isAnswerRevealed}
+                    onClick={handleFiftyFifty}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                      usedFiftyFifty
+                        ? 'opacity-30 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-400'
+                        : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/30'
+                    }`}
+                    title="Eliminate two incorrect choices"
+                  >
+                    <Scissors className="w-3.5 h-3.5" />
+                    <span>50/50 Lifeline</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={usedFreeze || isAnswerRevealed}
+                    onClick={handleTimeFreeze}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                      usedFreeze
+                        ? 'opacity-30 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-400'
+                        : 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border-cyan-500/30'
+                    }`}
+                    title="Add +15 seconds to countdown"
+                  >
+                    <Snowflake className="w-3.5 h-3.5" />
+                    <span>+15s Freeze</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowHint(!showHint)}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-300 border-teal-500/30"
+                    title="Show formula hint"
+                  >
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    <span>{showHint ? 'Hide Hint' : 'Concept Hint'}</span>
+                  </button>
+
+                  {floatingDamage && (
+                    <span className="ml-auto text-xs font-black text-rose-500 animate-bounce">
+                      {floatingDamage}
+                    </span>
+                  )}
+                </div>
+
+                {showHint && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs">
+                    💡 <span className="font-bold">Key Hint:</span> Think about the fundamental laws of {currentQuestion.subject} for {currentQuestion.grade}.
+                  </div>
+                )}
               </div>
 
               {/* Options Grid */}
@@ -621,6 +716,19 @@ export const StudyArenaView: React.FC = () => {
                 {currentQuestion.options.map((opt, idx) => {
                   const isSelected = selectedAnswer === idx;
                   const isCorrect = idx === currentQuestion.correctIndex;
+                  const isEliminated = eliminatedIndices.includes(idx);
+
+                  if (isEliminated) {
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-400 text-xs opacity-40 line-through"
+                      >
+                        <MathFormula text={opt} />
+                      </div>
+                    );
+                  }
+
                   let btnStyle = 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-slate-400 dark:hover:border-slate-500';
 
                   if (isAnswerRevealed) {
@@ -638,7 +746,7 @@ export const StudyArenaView: React.FC = () => {
                       onClick={() => handleAnswerClick(idx)}
                       className={`p-3.5 rounded-xl border text-left text-xs sm:text-sm transition-all flex items-center justify-between shadow-sm ${btnStyle}`}
                     >
-                      <span>{opt}</span>
+                      <MathFormula text={opt} />
                       {isAnswerRevealed && isCorrect && <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0 ml-2" />}
                       {isAnswerRevealed && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-rose-400 shrink-0 ml-2" />}
                     </button>
@@ -649,7 +757,8 @@ export const StudyArenaView: React.FC = () => {
               {/* Explanation note when answered */}
               {isAnswerRevealed && (
                 <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-xs animate-fade-in">
-                  <span className="font-bold">Explanation:</span> {currentQuestion.explanation}
+                  <span className="font-bold">Explanation: </span>
+                  <MathFormula text={currentQuestion.explanation} />
                 </div>
               )}
             </div>
