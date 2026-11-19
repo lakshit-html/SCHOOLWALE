@@ -13,15 +13,18 @@ import { BacklogView } from './components/backlog/BacklogView';
 import { RevisionView } from './components/revision/RevisionView';
 import { PomodoroView } from './components/timer/PomodoroView';
 import { StudyArenaView } from './components/game/StudyArenaView';
+import { WhiteboardView } from './components/whiteboard/WhiteboardView';
 import { NotesView } from './components/notes/NotesView';
 import { MockTestsView } from './components/tests/MockTestsView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { SettingsView } from './components/settings/SettingsView';
+import { QuickCalculatorModal } from './components/calculator/QuickCalculatorModal';
 
 export const AppContent: React.FC = () => {
   const { activeTab, data } = useApp();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(
     !data.profile.hasCompletedOnboarding
   );
@@ -44,6 +47,7 @@ export const AppContent: React.FC = () => {
           onOpenQuickAdd={() => setIsQuickAddOpen(true)}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
           onOpenTutorial={() => setIsTutorialOpen(true)}
+          onOpenCalculator={() => setIsCalculatorOpen(true)}
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-fade-in">
@@ -58,6 +62,7 @@ export const AppContent: React.FC = () => {
           {activeTab === 'revision' && <RevisionView />}
           {activeTab === 'pomodoro' && <PomodoroView />}
           {activeTab === 'arena' && <StudyArenaView />}
+          {activeTab === 'whiteboard' && <WhiteboardView />}
           {activeTab === 'notes' && <NotesView />}
           {activeTab === 'tests' && <MockTestsView />}
           {activeTab === 'analytics' && <AnalyticsView />}
@@ -70,6 +75,10 @@ export const AppContent: React.FC = () => {
       <QuickAddModal
         isOpen={isQuickAddOpen}
         onClose={() => setIsQuickAddOpen(false)}
+      />
+      <QuickCalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
       />
       <TutorialModal
         isOpen={isTutorialOpen}

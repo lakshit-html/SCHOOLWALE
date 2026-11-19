@@ -104,14 +104,25 @@ export interface FocusSession {
   rating?: 'productive' | 'flow' | 'distracted';
 }
 
+export interface NoteAttachment {
+  id: string;
+  name: string;
+  type: string; // MIME type e.g. application/pdf, image/png
+  size: number; // bytes
+  dataUrl: string; // base64 or blob data URL
+  uploadedAt: string;
+}
+
 export interface Note {
   id: string;
   subjectId: string;
   chapterId?: string;
+  lectureTitle?: string;
   title: string;
   content: string;
   pinned: boolean;
   tags: string[];
+  attachments?: NoteAttachment[];
   createdAt: string; // ISO
   updatedAt: string; // ISO
 }

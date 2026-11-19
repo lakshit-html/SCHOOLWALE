@@ -7,6 +7,7 @@ import {
   Repeat,
   Timer,
   Gamepad2,
+  Presentation,
   BookOpen,
   Award,
   BarChart3,
@@ -71,6 +72,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Gamepad2,
       badge: data.game?.level ? `L${data.game.level}` : 'Play',
       badgeColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30'
+    },
+    {
+      id: 'whiteboard',
+      label: 'Smart Whiteboard',
+      icon: Presentation,
+      badge: 'Board',
+      badgeColor: 'bg-teal-500/15 text-teal-600 dark:text-teal-300 border-teal-500/30'
     },
     { id: 'notes', label: 'Notes Manager', icon: BookOpen },
     { id: 'tests', label: 'Mock Tests & Exam', icon: Award },

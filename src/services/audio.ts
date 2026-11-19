@@ -80,6 +80,10 @@ class SoundEffectService {
     }
   }
 
+  playTactileClick() {
+    this.playTick();
+  }
+
   playTick() {
     try {
       const ctx = this.getContext();

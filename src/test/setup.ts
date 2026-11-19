@@ -20,3 +20,32 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
+
+// Mock HTMLCanvasElement.prototype.getContext for jsdom
+HTMLCanvasElement.prototype.getContext = (() => {
+  return {
+    fillRect: () => {},
+    clearRect: () => {},
+    getImageData: (_x: number, _y: number, w: number, h: number) => ({
+      data: new Uint8ClampedArray(w * h * 4),
+      width: w,
+      height: h
+    }),
+    putImageData: () => {},
+    createImageData: () => ({ data: [] }),
+    setTransform: () => {},
+    drawImage: () => {},
+    save: () => {},
+    fillText: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    closePath: () => {},
+    stroke: () => {},
+    arc: () => {},
+    fill: () => {},
+    strokeRect: () => {}
+  } as unknown as CanvasRenderingContext2D;
+}) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+

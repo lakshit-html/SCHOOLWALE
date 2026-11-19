@@ -52,24 +52,29 @@ describe('StudyForge Application UI & Navigation', () => {
     // 5. Navigate to Study Arena & Games
     const arenaButtons = screen.getAllByRole('button', { name: /Study Arena & Games/i });
     fireEvent.click(arenaButtons[0]);
-    expect(screen.getByText(/BrainForge Arena & Boss Quest/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/BrainForge Speed Recall Arena/i).length).toBeGreaterThan(0);
 
-    // 6. Navigate to Notes
+    // 6. Navigate to Smart Whiteboard
+    const whiteboardButtons = screen.getAllByRole('button', { name: /Smart Whiteboard/i });
+    fireEvent.click(whiteboardButtons[0]);
+    expect(screen.getByText(/StudyForge Smart Teacher Board/i)).toBeInTheDocument();
+
+    // 7. Navigate to Notes
     const notesButtons = screen.getAllByRole('button', { name: /Notes Manager/i });
     fireEvent.click(notesButtons[0]);
-    expect(screen.getByText(/Academic Notes & Formula Vault/i)).toBeInTheDocument();
+    expect(screen.getByText(/Lecture Notes & Document Vault/i)).toBeInTheDocument();
 
-    // 6. Navigate to Mock Tests
+    // 8. Navigate to Mock Tests
     const testsButtons = screen.getAllByRole('button', { name: /Mock Tests & Exam/i });
     fireEvent.click(testsButtons[0]);
     expect(screen.getByText(/Mock Tests & Examination Intelligence/i)).toBeInTheDocument();
 
-    // 7. Navigate to Analytics
+    // 9. Navigate to Analytics
     const analyticsButtons = screen.getAllByRole('button', { name: /Analytics & Insights/i });
     fireEvent.click(analyticsButtons[0]);
     expect(screen.getByText(/Academic Performance & Analytics/i)).toBeInTheDocument();
 
-    // 8. Navigate to Settings
+    // 10. Navigate to Settings
     const settingsButtons = screen.getAllByRole('button', { name: /Settings & Data/i });
     fireEvent.click(settingsButtons[0]);
     expect(screen.getByText(/Settings & Preferences/i)).toBeInTheDocument();
@@ -91,5 +96,35 @@ describe('StudyForge Application UI & Navigation', () => {
     expect(screen.getByText(/Quick Action/i)).toBeInTheDocument();
     expect(screen.getByText(/Study Task/i)).toBeInTheDocument();
     expect(screen.getByText(/Backlog Lecture/i)).toBeInTheDocument();
+  });
+
+  it('opens and closes the Scientific Calculator modal and performs calculation', () => {
+    // Arrange
+    render(<App />);
+
+    // Dismiss tutorial if visible
+    const skipBtn = screen.queryByTitle(/Skip Tour/i);
+    if (skipBtn) fireEvent.click(skipBtn);
+
+    // Open calculator
+    const calcBtn = screen.getByLabelText(/Open Calculator/i);
+    fireEvent.click(calcBtn);
+
+    // Assert calculator opened
+    expect(screen.getByText(/Scientific Calculator/i)).toBeInTheDocument();
+
+    // Click 7, +, 8, =
+    const btn7 = screen.getByRole('button', { name: '7' });
+    const btnPlus = screen.getByRole('button', { name: '+' });
+    const btn8 = screen.getByRole('button', { name: '8' });
+    const btnEquals = screen.getByRole('button', { name: '=' });
+
+    fireEvent.click(btn7);
+    fireEvent.click(btnPlus);
+    fireEvent.click(btn8);
+    fireEvent.click(btnEquals);
+
+    // Result should be 15
+    expect(screen.getByText('15')).toBeInTheDocument();
   });
 });

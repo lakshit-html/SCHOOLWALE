@@ -15,6 +15,7 @@ import {
   Sword
 } from 'lucide-react';
 import { PomodoroMode } from '../../types';
+import { FocusMusicPlayer } from '../music/FocusMusicPlayer';
 
 export const PomodoroView: React.FC = () => {
   const { data, logFocusSession } = useApp();
@@ -340,6 +341,9 @@ export const PomodoroView: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Embedded Ambient Soundscape & Lo-Fi Generator */}
+      <FocusMusicPlayer embedded />
 
       {/* Today's Focus Session History */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">

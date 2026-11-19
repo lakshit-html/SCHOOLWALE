@@ -1,18 +1,31 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Flame, Volume2, VolumeX, Moon, Sun, Sparkles, Plus, HelpCircle } from 'lucide-react';
+import {
+  Flame,
+  Volume2,
+  VolumeX,
+  Moon,
+  Sun,
+  Sparkles,
+  Plus,
+  HelpCircle,
+  Calculator as CalcIcon
+} from 'lucide-react';
 import { calculateDashboardMetrics } from '../../services/analytics';
+import { FocusMusicPlayer } from '../music/FocusMusicPlayer';
 
 interface HeaderProps {
   onOpenQuickAdd: () => void;
   onOpenMobileMenu: () => void;
   onOpenTutorial: () => void;
+  onOpenCalculator: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenQuickAdd,
   onOpenMobileMenu,
-  onOpenTutorial
+  onOpenTutorial,
+  onOpenCalculator
 }) => {
   const { data, updateProfile, setActiveTab } = useApp();
   const metrics = calculateDashboardMetrics(data);
@@ -95,6 +108,19 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Quick Add</span>
+        </button>
+
+        {/* Lo-Fi & Focus Ambient Sound Player */}
+        <FocusMusicPlayer />
+
+        {/* Quick Calculator Modal Trigger */}
+        <button
+          onClick={onOpenCalculator}
+          title="Open Scientific Calculator"
+          className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 transition-colors shadow-sm"
+          aria-label="Open Calculator"
+        >
+          <CalcIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
         </button>
 
         {/* Interactive Tutorial Guide Button */}

@@ -24,6 +24,7 @@ export type NavigationTab =
   | 'revision'
   | 'pomodoro'
   | 'arena'
+  | 'whiteboard'
   | 'notes'
   | 'tests'
   | 'analytics'
