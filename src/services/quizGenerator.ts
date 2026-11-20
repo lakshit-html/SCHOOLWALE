@@ -199,15 +199,33 @@ Output ONLY valid JSON in this exact structure with no surrounding markdown code
 
   try {
     const response = await geminiService.askAI(prompt);
-    // Extract JSON block from response
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    // Sanitize and extract JSON block from response
+    const cleaned = response.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+    const jsonMatch = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as ArenaQuestion[];
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((q, idx) => ({
-          ...q,
-          id: `ai-gen-${Date.now()}-${idx}`
-        }));
+        return parsed.map((q, idx) => {
+          const options =
+            Array.isArray(q.options) && q.options.length >= 4
+              ? q.options.slice(0, 4)
+              : ['Option A', 'Option B', 'Option C', 'Option D'];
+          return {
+            id: `ai-gen-${Date.now()}-${idx}`,
+            question: q.question || `Concept question on ${topic}`,
+            options: options,
+            correctAnswer:
+              typeof q.correctAnswer === 'number' &&
+              q.correctAnswer >= 0 &&
+              q.correctAnswer < options.length
+                ? q.correctAnswer
+                : 0,
+            explanation: q.explanation || `Detailed solution and concept for ${topic}.`,
+            subject: q.subject || 'Physics',
+            difficulty: q.difficulty || 'medium',
+            topic: topic
+          };
+        });
       }
     }
   } catch (err) {

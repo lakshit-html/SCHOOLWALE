@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   NCERT_BOOKS,
+  NCERTBook,
   NCERTChapter
 } from '../../services/ncertData';
 import { MathFormula } from '../common/MathFormula';
@@ -20,15 +21,15 @@ import {
 } from 'lucide-react';
 
 export const NCERTBooksView: React.FC = () => {
-  const { setActiveTab } = useApp();
+  const { setActiveTab, setWhiteboardNote, showToast } = useApp();
   const [selectedClass, setSelectedClass] = useState<string>('All');
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
-  const [activeModalChapter, setActiveModalChapter] = useState<NCERTChapter | null>(null);
+  const [activeModalChapter, setActiveModalChapter] = useState<{ book: NCERTBook; chapter: NCERTChapter } | null>(null);
 
   const classes = ['All', 'Class 12', 'Class 11', 'Class 10', 'Class 9'];
-  const subjects = ['All', 'Physics', 'Chemistry', 'Mathematics', 'Biology', 'Science'];
+  const subjects = ['All', 'Physics', 'Chemistry', 'Mathematics', 'Biology', 'Science', 'Social Science'];
 
   // Filter books
   const filteredBooks = NCERT_BOOKS.filter(book => {
@@ -49,7 +50,15 @@ export const NCERTBooksView: React.FC = () => {
     setActiveTab('arena');
   };
 
-  const handleOpenWhiteboard = () => {
+  const handleAnnotateChapter = (book: NCERTBook, ch: NCERTChapter) => {
+    setWhiteboardNote({
+      title: ch.title,
+      bookTitle: book.title,
+      chapterNumber: ch.chapterNumber,
+      formulas: ch.keyFormulas || [],
+      points: ch.highYieldPoints || []
+    });
+    showToast?.(`Loaded "${ch.title}" formulas into Whiteboard!`, 'success');
     setActiveTab('whiteboard');
   };
 
@@ -219,11 +228,23 @@ export const NCERTBooksView: React.FC = () => {
                         <a
                           href={ch.pdfUrl}
                           target="_blank"
-                          rel="noopener noreferrer"
+                          rel="noreferrer noopener"
+                          referrerPolicy="no-referrer"
                           className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1"
                           title="Open official NCERT textbook PDF"
                         >
                           <span>PDF</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                        <a
+                          href={ch.portalUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          referrerPolicy="no-referrer"
+                          className="hidden sm:flex px-2 py-1 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-[11px] font-bold rounded-lg transition-colors items-center gap-1"
+                          title="Open on official NCERT Web Portal"
+                        >
+                          <span>Web</span>
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       </div>
@@ -271,14 +292,14 @@ export const NCERTBooksView: React.FC = () => {
                             <span>Practice Quiz</span>
                           </button>
                           <button
-                            onClick={handleOpenWhiteboard}
+                            onClick={() => handleAnnotateChapter(book, ch)}
                             className="px-3 py-1 bg-teal-600/10 hover:bg-teal-600/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 rounded-lg font-semibold text-[11px] transition-colors flex items-center gap-1"
                           >
                             <Presentation className="w-3 h-3" />
                             <span>Annotate in Whiteboard</span>
                           </button>
                           <button
-                            onClick={() => setActiveModalChapter(ch)}
+                            onClick={() => setActiveModalChapter({ book, chapter: ch })}
                             className="px-3 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold text-[11px] transition-colors flex items-center gap-1 ml-auto"
                           >
                             <BookOpen className="w-3 h-3" />
@@ -303,20 +324,31 @@ export const NCERTBooksView: React.FC = () => {
             <div className="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-mono uppercase bg-white/20 px-2 py-0.5 rounded-full">
-                  NCERT Chapter {activeModalChapter.chapterNumber}
+                  {activeModalChapter.book.title} &bull; Chapter {activeModalChapter.chapter.chapterNumber}
                 </span>
                 <h3 className="text-base sm:text-lg font-bold mt-1">
-                  {activeModalChapter.title}
+                  {activeModalChapter.chapter.title}
                 </h3>
               </div>
               <div className="flex items-center gap-2">
                 <a
-                  href={activeModalChapter.pdfUrl}
+                  href={activeModalChapter.chapter.pdfUrl}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noreferrer noopener"
+                  referrerPolicy="no-referrer"
                   className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5"
                 >
                   <span>Open Official PDF</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href={activeModalChapter.chapter.portalUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  referrerPolicy="no-referrer"
+                  className="px-3 py-1.5 bg-black/20 hover:bg-black/30 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <span>Portal</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
                 <button
@@ -335,17 +367,22 @@ export const NCERTBooksView: React.FC = () => {
                   Chapter Synopsis &amp; NCERT Syllabus
                 </h4>
                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                  {activeModalChapter.summary}
+                  {activeModalChapter.chapter.summary}
                 </p>
+                {activeModalChapter.chapter.detailedTheory && (
+                  <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <MathFormula text={activeModalChapter.chapter.detailedTheory} />
+                  </p>
+                )}
               </div>
 
-              {activeModalChapter.keyFormulas && activeModalChapter.keyFormulas.length > 0 && (
+              {activeModalChapter.chapter.keyFormulas && activeModalChapter.chapter.keyFormulas.length > 0 && (
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
                   <h4 className="text-xs uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" /> Core NCERT Equations &amp; Formulas
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {activeModalChapter.keyFormulas.map((form, idx) => (
+                    {activeModalChapter.chapter.keyFormulas.map((form, idx) => (
                       <div
                         key={idx}
                         className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center font-mono text-xs sm:text-sm"
@@ -362,16 +399,25 @@ export const NCERTBooksView: React.FC = () => {
                   <Bookmark className="w-3.5 h-3.5" /> NCERT High-Yield Exam Takeaways
                 </h4>
                 <ul className="list-disc list-inside space-y-1.5 text-xs text-amber-900 dark:text-amber-200">
-                  {activeModalChapter.highYieldPoints.map((pt, idx) => (
+                  {activeModalChapter.chapter.highYieldPoints.map((pt, idx) => (
                     <li key={idx}>{pt}</li>
                   ))}
                 </ul>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-between flex-wrap gap-3">
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  Ready to test your concept retention?
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      handleAnnotateChapter(activeModalChapter.book, activeModalChapter.chapter);
+                      setActiveModalChapter(null);
+                    }}
+                    className="px-4 py-2 bg-teal-600/20 hover:bg-teal-600/30 text-teal-700 dark:text-teal-300 border border-teal-500/30 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  >
+                    <Presentation className="w-4 h-4" />
+                    <span>Annotate in Whiteboard</span>
+                  </button>
+                </div>
                 <button
                   onClick={() => {
                     setActiveModalChapter(null);

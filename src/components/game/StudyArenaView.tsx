@@ -353,7 +353,7 @@ const GRADE_LIST: AcademicGrade[] = [
 ];
 
 export const StudyArenaView: React.FC = () => {
-  const { data, recordGameResult, damageBoss } = useApp();
+  const { data, recordGameResult, damageBoss, showToast } = useApp();
 
   // Selected Grade Filter: Defaults to student profile grade if matches, else Class 11
   const initialGrade = GRADE_LIST.includes(data.profile.grade as AcademicGrade)
@@ -392,12 +392,14 @@ export const StudyArenaView: React.FC = () => {
   const handleRollNewQuestions = () => {
     setActiveQuestions(buildQuestionsForGrade(selectedGrade));
     soundEffects.playTactileClick();
+    showToast?.('Rolled fresh dynamic numericals & questions!', 'info');
   };
 
   const handleGenerateAIQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiTopicInput.trim() || isGeneratingAIQuiz) return;
     setIsGeneratingAIQuiz(true);
+    showToast?.(`Consulting Gemini AI for "${aiTopicInput.trim()}" questions...`, 'info');
     try {
       const generated = await generateAIQuiz(aiTopicInput.trim(), selectedGrade, 5);
       const formatted: Question[] = generated.map((g, idx) => ({
@@ -412,6 +414,22 @@ export const StudyArenaView: React.FC = () => {
       }));
       setActiveQuestions(formatted);
       soundEffects.playCompletionBeep();
+      showToast?.(`AI Quiz Ready! Starting Battle on "${aiTopicInput.trim()}"!`, 'success');
+      // Instantly start challenge with newly generated AI questions!
+      setIsPlaying(true);
+      setTimeRemaining(50);
+      setQIndex(0);
+      setScore(0);
+      setCombo(0);
+      setMaxSessionCombo(0);
+      setSelectedAnswer(null);
+      setIsAnswerRevealed(false);
+      setIsGameOver(false);
+      setEliminatedIndices([]);
+      setUsedFiftyFifty(false);
+      setUsedFreeze(false);
+      setShowHint(false);
+      setFloatingDamage(null);
     } catch {
       setActiveQuestions(buildQuestionsForGrade(selectedGrade));
     } finally {

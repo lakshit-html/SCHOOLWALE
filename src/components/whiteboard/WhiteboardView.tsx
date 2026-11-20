@@ -15,9 +15,18 @@ import {
   Trash2,
   Maximize2,
   Minimize2,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Sparkles,
+  BookOpen,
+  Loader2
 } from 'lucide-react';
 import { compressImageForMobile } from '../../services/blobStorage';
+import { useApp } from '../../context/AppContext';
+import { isModifierPressed } from '../../utils/platform';
+import { loadPdfDocument, renderPdfPageToImage } from '../../services/pdfRenderer';
 
 type ToolType =
   | 'pen'
@@ -43,6 +52,7 @@ const COLOR_PALETTE = [
 ];
 
 export const WhiteboardView: React.FC = () => {
+  const { whiteboardNote, setWhiteboardNote, showToast } = useApp();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -65,6 +75,18 @@ export const WhiteboardView: React.FC = () => {
   // Background PDF / Image
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
   const [hasImage, setHasImage] = useState(false);
+
+  // Multi-page PDF state
+  const [pdfState, setPdfState] = useState<{
+    doc: any;
+    numPages: number;
+    currentPage: number;
+    fileName: string;
+  } | null>(null);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+  // Whiteboard sticky note state
+  const [isNoteMinimized, setIsNoteMinimized] = useState(false);
 
   // Draw background helper
   const drawBoardBackground = useCallback(
@@ -268,6 +290,7 @@ export const WhiteboardView: React.FC = () => {
   const handleRemoveImage = () => {
     setBackgroundImage(null);
     setHasImage(false);
+    setPdfState(null);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -446,28 +469,142 @@ export const WhiteboardView: React.FC = () => {
     ctx.fill();
   };
 
-  // Upload Slide / Question Image
+  // Handle PDF Page flipping
+  const handlePdfPageChange = async (targetPage: number) => {
+    if (!pdfState || targetPage < 1 || targetPage > pdfState.numPages || isPdfLoading) return;
+    try {
+      setIsPdfLoading(true);
+      const canvas = canvasRef.current;
+      const targetW = canvas ? canvas.width : 1600;
+      const img = await renderPdfPageToImage(pdfState.doc, targetPage, targetW);
+      setPdfState(prev => (prev ? { ...prev, currentPage: targetPage } : null));
+      setBackgroundImage(img);
+      setHasImage(true);
+    } catch (err) {
+      console.error('PDF page switch error:', err);
+      showToast?.(`Could not load page ${targetPage}`, 'error');
+    } finally {
+      setIsPdfLoading(false);
+    }
+  };
+
+  // Upload Slide / Question Image or PDF
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      const dataUrl = await compressImageForMobile(file);
-      const img = new Image();
-      img.onload = () => {
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+      try {
+        setIsPdfLoading(true);
+        const loaded = await loadPdfDocument(file);
+        const canvas = canvasRef.current;
+        const targetW = canvas ? canvas.width : 1600;
+        const img = await renderPdfPageToImage(loaded.pdfDoc, 1, targetW);
+
+        setPdfState({
+          doc: loaded.pdfDoc,
+          numPages: loaded.numPages,
+          currentPage: 1,
+          fileName: loaded.fileName
+        });
         setBackgroundImage(img);
         setHasImage(true);
-      };
-      img.src = dataUrl;
-    } catch (err) {
-      console.error('Slide upload error:', err);
-      alert('Could not load image. Please select a valid PNG or JPG file.');
+        showToast?.(`Opened PDF: ${loaded.fileName} (${loaded.numPages} pages)`, 'success');
+      } catch (err) {
+        console.error('PDF upload error:', err);
+        alert('Could not open PDF. Please make sure the file is valid and unencrypted.');
+      } finally {
+        setIsPdfLoading(false);
+      }
+    } else {
+      try {
+        const dataUrl = await compressImageForMobile(file);
+        const img = new Image();
+        img.onload = () => {
+          setPdfState(null);
+          setBackgroundImage(img);
+          setHasImage(true);
+          showToast?.(`Imported image slide: ${file.name}`, 'success');
+        };
+        img.src = dataUrl;
+      } catch (err) {
+        console.error('Slide upload error:', err);
+        alert('Could not load image. Please select a valid PNG or JPG file.');
+      }
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  // Stamp current active NCERT note / formulas directly on board
+  const stampWhiteboardNoteOnCanvas = () => {
+    if (!whiteboardNote) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.save();
+    ctx.fillStyle = activeColor === '#000000' ? '#ffffff' : activeColor;
+    ctx.font = 'bold 18px ui-monospace, SFMono-Regular, Menlo, Monaco, monospace';
+    ctx.fillText(`📌 NCERT: ${whiteboardNote.bookTitle || ''} - ${whiteboardNote.title}`, 40, 60);
+
+    ctx.font = '14px ui-monospace, monospace';
+    let curY = 95;
+    if (whiteboardNote.formulas && whiteboardNote.formulas.length > 0) {
+      ctx.fillStyle = '#facc15';
+      ctx.fillText('⚡ Key Formulas:', 40, curY);
+      curY += 24;
+      ctx.fillStyle = '#ffffff';
+      whiteboardNote.formulas.slice(0, 4).forEach(form => {
+        ctx.fillText(`  • ${form}`, 40, curY);
+        curY += 22;
+      });
+    }
+
+    if (whiteboardNote.points && whiteboardNote.points.length > 0) {
+      curY += 8;
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('🎯 High-Yield Exam Points:', 40, curY);
+      curY += 24;
+      ctx.fillStyle = '#e2e8f0';
+      whiteboardNote.points.slice(0, 3).forEach(pt => {
+        const snippet = pt.length > 70 ? `${pt.slice(0, 70)}...` : pt;
+        ctx.fillText(`  • ${snippet}`, 40, curY);
+        curY += 22;
+      });
+    }
+
+    ctx.restore();
+    saveHistoryState(ctx);
+    showToast?.('Stamped NCERT formulas onto canvas! Ready to annotate.', 'success');
+  };
+
+  // Mac (⌘Z, ⌘⇧Z) & Windows (Ctrl+Z, Ctrl+Y) keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isModifierPressed(e)) {
+        if (e.key === 'z' || e.key === 'Z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            handleRedo();
+          } else {
+            handleUndo();
+          }
+        } else if (e.key === 'y' || e.key === 'Y') {
+          e.preventDefault();
+          handleRedo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [historyStep, history]);
 
   const handleExportPNG = () => {
     const canvas = canvasRef.current;
@@ -638,17 +775,48 @@ export const WhiteboardView: React.FC = () => {
             <option value="pure-black">OLED Pure Black</option>
           </select>
 
-          {/* Upload Slide / Question Image */}
+          {/* PDF Page Navigation (When a multi-page PDF is loaded) */}
+          {pdfState && (
+            <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0">
+              <FileText className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span className="hidden md:inline truncate max-w-[90px]">{pdfState.fileName}</span>
+              <button
+                onClick={() => handlePdfPageChange(pdfState.currentPage - 1)}
+                disabled={pdfState.currentPage <= 1 || isPdfLoading}
+                className="p-1 hover:bg-emerald-500/20 rounded disabled:opacity-20"
+                title="Previous PDF Page"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="font-mono text-[11px]">
+                {pdfState.currentPage}/{pdfState.numPages}
+              </span>
+              <button
+                onClick={() => handlePdfPageChange(pdfState.currentPage + 1)}
+                disabled={pdfState.currentPage >= pdfState.numPages || isPdfLoading}
+                className="p-1 hover:bg-emerald-500/20 rounded disabled:opacity-20"
+                title="Next PDF Page"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Upload Slide / Question Image or PDF */}
           <label
-            className="cursor-pointer p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 text-xs font-semibold"
-            title="Import Lecture Slide or Problem"
+            className="cursor-pointer p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 text-xs font-semibold shrink-0"
+            title="Import Lecture Slide, Question Image, or NCERT PDF"
           >
-            <Upload className="w-4 h-4 text-brand-500" />
-            <span className="hidden sm:inline">Import Slide</span>
+            {isPdfLoading ? (
+              <Loader2 className="w-4 h-4 text-brand-500 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 text-brand-500" />
+            )}
+            <span className="hidden sm:inline">{isPdfLoading ? 'Loading PDF...' : 'Import PDF/Slide'}</span>
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf,.pdf"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -718,6 +886,82 @@ export const WhiteboardView: React.FC = () => {
       {liveInfo && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-40 bg-slate-950/95 border border-brand-500 text-brand-300 px-4 py-1.5 rounded-full text-xs font-mono font-bold shadow-2xl animate-pulse">
           {liveInfo}
+        </div>
+      )}
+
+      {/* Active NCERT Chapter Annotation Sticky Card */}
+      {whiteboardNote && (
+        <div className="p-3 sm:p-4 bg-slate-900/95 text-white border border-emerald-500/40 rounded-2xl shadow-2xl backdrop-blur-md animate-fade-in space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <div className="truncate">
+                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block">
+                  {whiteboardNote.bookTitle || 'NCERT Book'} &bull; Chapter {whiteboardNote.chapterNumber || ''}
+                </span>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-100 truncate">
+                  {whiteboardNote.title}
+                </h4>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={stampWhiteboardNoteOnCanvas}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1"
+                title="Stamp chapter formulas onto canvas"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Stamp on Board</span>
+              </button>
+              <button
+                onClick={() => setIsNoteMinimized(!isNoteMinimized)}
+                className="px-2 py-1 text-slate-400 hover:text-white rounded-lg text-xs"
+              >
+                {isNoteMinimized ? 'Show' : 'Hide'}
+              </button>
+              <button
+                onClick={() => setWhiteboardNote(null)}
+                className="p-1 text-slate-400 hover:text-rose-400 rounded-lg"
+                title="Close NCERT Note"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {!isNoteMinimized && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1 border-t border-slate-800 text-xs">
+              {whiteboardNote.formulas && whiteboardNote.formulas.length > 0 && (
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                    Formulas to Solve:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {whiteboardNote.formulas.map((f, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded bg-black/60 font-mono text-[11px] text-amber-200 border border-amber-500/20">
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {whiteboardNote.points && whiteboardNote.points.length > 0 && (
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">
+                    Key Examination Takeaways:
+                  </span>
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-slate-300">
+                    {whiteboardNote.points.slice(0, 2).map((p, i) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

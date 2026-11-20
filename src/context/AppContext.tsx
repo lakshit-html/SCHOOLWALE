@@ -37,6 +37,14 @@ export interface ToastMessage {
   text: string;
 }
 
+export interface WhiteboardNote {
+  title: string;
+  bookTitle?: string;
+  chapterNumber?: number;
+  formulas: string[];
+  points: string[];
+}
+
 interface AppContextValue {
   data: AppData;
   activeTab: NavigationTab;
@@ -100,6 +108,10 @@ interface AppContextValue {
   resetDefaultData: () => void;
   loadDemoShowcase: () => void;
   clearAllData: () => void;
+
+  // Whiteboard Active Annotations
+  whiteboardNote: WhiteboardNote | null;
+  setWhiteboardNote: (note: WhiteboardNote | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -108,6 +120,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [data, setData] = useState<AppData>(() => StorageService.loadData());
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [whiteboardNote, setWhiteboardNote] = useState<WhiteboardNote | null>(null);
 
   // Persist whenever state changes
   useEffect(() => {
@@ -769,7 +782,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addXp,
         damageBoss,
         recordGameResult,
-        clearAllData
+        clearAllData,
+        whiteboardNote,
+        setWhiteboardNote
       }}
     >
       {children}
