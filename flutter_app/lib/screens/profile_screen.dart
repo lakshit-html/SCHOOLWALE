@@ -351,6 +351,48 @@ class ProfileScreen extends StatelessWidget {
                 _buildStatPill(Icons.timer, '${appState.timerCompletedSessions}', 'Sessions', AppTheme.brandBlue),
               ],
             ),
+            const SizedBox(height: 20),
+
+            // Minimalist Monochrome Theme Switcher
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppTheme.cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.borderDark),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    appState.isMonochromeMode ? Icons.contrast : Icons.palette_outlined,
+                    color: appState.isMonochromeMode ? Colors.white : AppTheme.brandGold,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          appState.isMonochromeMode ? 'Monochrome B&W Theme' : 'Cyber Neon Dark Theme',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        Text(
+                          appState.isMonochromeMode ? 'Minimalist ink & paper distraction-free mode' : 'Vibrant emerald & neon cyber mode',
+                          style: const TextStyle(color: Colors.white54, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: appState.isMonochromeMode,
+                    activeColor: Colors.white,
+                    activeTrackColor: Colors.white38,
+                    onChanged: (_) => appState.toggleMonochromeMode(),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
 
             // Local Database Vault Card

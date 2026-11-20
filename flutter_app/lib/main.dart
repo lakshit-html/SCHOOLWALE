@@ -21,10 +21,12 @@ class StudyForgeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMonochrome = context.watch<AppState>().isMonochromeMode;
+
     return MaterialApp(
       title: 'StudyForge',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: isMonochrome ? AppTheme.monochromeTheme : AppTheme.darkTheme,
       home: const MainNavigationScreen(),
     );
   }

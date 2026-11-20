@@ -17,6 +17,7 @@ class AppState extends ChangeNotifier {
   List<StudyTask> _tasks = [];
   bool _isLoading = true;
   NCERTChapter? _activeWhiteboardChapter;
+  bool _isMonochromeMode = false;
   int _currentTabIndex = 0;
 
   // Persistent Timer Engine
@@ -36,6 +37,13 @@ class AppState extends ChangeNotifier {
   bool get isLoading => _isLoading;
   NCERTChapter? get activeWhiteboardChapter => _activeWhiteboardChapter;
   int get currentTabIndex => _currentTabIndex;
+  bool get isMonochromeMode => _isMonochromeMode;
+
+  void toggleMonochromeMode() {
+    _isMonochromeMode = !_isMonochromeMode;
+    StorageService.saveMonochromeMode(_isMonochromeMode);
+    notifyListeners();
+  }
 
   // Timer Getters
   PomodoroMode get timerMode => _timerMode;
@@ -69,6 +77,7 @@ class AppState extends ChangeNotifier {
   Future<void> _initData() async {
     _profile = await StorageService.loadProfile();
     _tasks = await StorageService.loadTasks();
+    _isMonochromeMode = await StorageService.loadMonochromeMode();
 
     // Restore persistent timer state
     final savedTimer = await StorageService.loadTimerState();

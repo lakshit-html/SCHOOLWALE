@@ -45,6 +45,45 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
       ),
       body: Column(
         children: [
+          // Curated Library Banner
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  Image.network(
+                    'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80',
+                    height: 64,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(height: 64, color: const Color(0xFF1E293B)),
+                  ),
+                  Container(
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.black.withOpacity(0.85), Colors.black.withOpacity(0.35)],
+                      ),
+                    ),
+                  ),
+                  const Positioned(
+                    left: 14,
+                    top: 14,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Official NCERT Repository', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        SizedBox(height: 2),
+                        Text('Direct PDF access • Class 9 to 12 CBSE books', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // Search & Filter header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

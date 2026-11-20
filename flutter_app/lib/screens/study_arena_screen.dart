@@ -148,45 +148,61 @@ class _StudyArenaScreenState extends State<StudyArenaScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        // Trophy & Boss Banner
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4C1D95), Color(0xFF6D28D9), Color(0xFF2563EB)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(color: const Color(0xFF6D28D9).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6)),
-            ],
-          ),
-          child: Column(
+        // Trophy & Boss Banner with Curated Gaming / Arena Imagery
+        ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
             children: [
-              const Icon(Icons.military_tech, size: 54, color: AppTheme.brandGold),
-              const SizedBox(height: 8),
-              const Text(
-                'Academic Boss Arena',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+              Image.network(
+                'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(height: 180, color: const Color(0xFF4C1D95)),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Test speed & concept accuracy with dynamic Class 9-12 questions.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.brandAccent,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF4C1D95).withOpacity(0.9),
+                      const Color(0xFF1E1B4B).withOpacity(0.85),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                label: const Text('Start Challenge', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
-                onPressed: _startRound,
-              )
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    const Icon(Icons.military_tech, size: 48, color: AppTheme.brandGold),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Academic Boss Arena',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Timed challenge: 45 seconds • Class 9-12 NCERT concepts',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11, color: Colors.white70),
+                    ),
+                    const SizedBox(height: 14),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.brandAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                      label: const Text('Start Challenge', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
+                      onPressed: _startRound,
+                    )
+                  ],
+                ),
+              ),
             ],
           ),
         ),

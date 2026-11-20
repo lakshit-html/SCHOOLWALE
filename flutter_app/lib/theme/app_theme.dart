@@ -2,19 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Brand Emerald & Teal Colors
+  // Brand Emerald & Cyber Colors
   static const Color brandPrimary = Color(0xFF059669);
   static const Color brandAccent = Color(0xFF10B981);
   static const Color brandGold = Color(0xFFFACC15);
   static const Color brandBlue = Color(0xFF38BDF8);
   static const Color brandPurple = Color(0xFFA855F7);
   static const Color brandRose = Color(0xFFF43F5E);
+  static const Color brandGreen = Color(0xFF10B981);
 
-  // Surface Colors
+  // Surface Colors - Cyber Dark
   static const Color bgDark = Color(0xFF090D16);
   static const Color cardDark = Color(0xFF111827);
   static const Color borderDark = Color(0xFF1F2937);
 
+  // Surface Colors - Pure Monochrome (Black & White Paper Mode)
+  static const Color monoBg = Color(0xFF000000);
+  static const Color monoCard = Color(0xFF121212);
+  static const Color monoCardAlt = Color(0xFF1E1E1E);
+  static const Color monoBorder = Color(0xFF2E2E2E);
+  static const Color monoWhite = Color(0xFFFFFFFF);
+  static const Color monoMuted = Color(0xFFA1A1AA);
+
+  // Standard Dark Theme
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
@@ -43,6 +53,41 @@ class AppTheme {
         backgroundColor: cardDark,
         selectedItemColor: brandAccent,
         unselectedItemColor: Color(0xFF9CA3AF),
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+    );
+  }
+
+  // Pure Black & White Minimalist Theme (High-Contrast / Paper & Ink)
+  static ThemeData get monochromeTheme {
+    return ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: monoBg,
+      primaryColor: monoWhite,
+      colorScheme: const ColorScheme.dark(
+        primary: monoWhite,
+        secondary: monoMuted,
+        surface: monoCard,
+      ),
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+      cardTheme: CardThemeData(
+        color: monoCard,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: monoBorder, width: 1),
+        ),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: monoBg,
+        elevation: 0,
+        centerTitle: false,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: monoCard,
+        selectedItemColor: monoWhite,
+        unselectedItemColor: Color(0xFF71717A),
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),

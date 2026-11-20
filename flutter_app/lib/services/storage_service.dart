@@ -40,6 +40,17 @@ class StorageService {
   static const String _keyTasks = 'studyforge_tasks';
   static const String _keyTimer = 'studyforge_timer';
   static const String _keyRevisions = 'studyforge_revisions';
+  static const String _keyMonochrome = 'studyforge_monochrome';
+
+  static Future<bool> loadMonochromeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyMonochrome) ?? false;
+  }
+
+  static Future<void> saveMonochromeMode(bool isMono) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyMonochrome, isMono);
+  }
 
   // Profile operations
   static Future<UserProfile> loadProfile() async {
