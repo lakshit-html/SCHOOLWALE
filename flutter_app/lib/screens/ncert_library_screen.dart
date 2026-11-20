@@ -23,9 +23,9 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final books = NCERTCatalog.books.filter((b) {
-      final matchesClass = _selectedClass === 'All' || b.classLevel == _selectedClass;
-      final matchesSub = _selectedSubject === 'All' || b.subject == _selectedSubject;
+    final books = NCERTCatalog.books.where((b) {
+      final matchesClass = _selectedClass == 'All' || b.classLevel == _selectedClass;
+      final matchesSub = _selectedSubject == 'All' || b.subject == _selectedSubject;
       final matchesQuery = _searchQuery.isEmpty ||
           b.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           b.chapters.any((c) => c.title.toLowerCase().contains(_searchQuery.toLowerCase()));
@@ -336,11 +336,5 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
         );
       }
     }
-  }
-}
-
-extension FilterExt<T> on List<T> {
-  List<T> filter(bool Function(T) test) {
-    return where(test).toList();
   }
 }
