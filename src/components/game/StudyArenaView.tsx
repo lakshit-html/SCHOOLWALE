@@ -15,11 +15,19 @@ import {
   GraduationCap,
   Scissors,
   Snowflake,
-  Lightbulb
+  Lightbulb,
+  Sparkles,
+  RefreshCw,
+  Bot
 } from 'lucide-react';
 import { soundEffects } from '../../services/audio';
 import { fireConfetti } from '../../utils/confetti';
 import { MathFormula } from '../common/MathFormula';
+import {
+  generateProceduralQuestions,
+  generateAIQuiz,
+  shuffleArray
+} from '../../services/quizGenerator';
 
 export type AcademicGrade = 'Class 9' | 'Class 10' | 'Class 11' | 'Class 12' | 'JEE / NEET';
 
@@ -354,8 +362,62 @@ export const StudyArenaView: React.FC = () => {
 
   const [selectedGrade, setSelectedGrade] = useState<AcademicGrade>(initialGrade);
 
-  // Filter questions for active grade
-  const gradeQuestions = ARENA_QUESTIONS.filter(q => q.grade === selectedGrade);
+  // Active questions state: dynamically generated and shuffled on every attempt!
+  const buildQuestionsForGrade = (grade: AcademicGrade): Question[] => {
+    const base = ARENA_QUESTIONS.filter(q => q.grade === grade);
+    const procedural = generateProceduralQuestions(grade, 3).map((pq, idx) => ({
+      id: 9000 + idx + Date.now(),
+      grade: grade,
+      subject: pq.subject,
+      subjectColor: pq.subject === 'Physics' ? '#38bdf8' : pq.subject === 'Chemistry' ? '#a855f7' : '#f59e0b',
+      question: pq.question,
+      options: pq.options,
+      correctIndex: pq.correctAnswer,
+      explanation: pq.explanation
+    }));
+    return shuffleArray([...base, ...procedural]);
+  };
+
+  const [activeQuestions, setActiveQuestions] = useState<Question[]>(() =>
+    buildQuestionsForGrade(initialGrade)
+  );
+
+  const [aiTopicInput, setAiTopicInput] = useState<string>('');
+  const [isGeneratingAIQuiz, setIsGeneratingAIQuiz] = useState<boolean>(false);
+
+  useEffect(() => {
+    setActiveQuestions(buildQuestionsForGrade(selectedGrade));
+  }, [selectedGrade]);
+
+  const handleRollNewQuestions = () => {
+    setActiveQuestions(buildQuestionsForGrade(selectedGrade));
+    soundEffects.playTactileClick();
+  };
+
+  const handleGenerateAIQuiz = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiTopicInput.trim() || isGeneratingAIQuiz) return;
+    setIsGeneratingAIQuiz(true);
+    try {
+      const generated = await generateAIQuiz(aiTopicInput.trim(), selectedGrade, 5);
+      const formatted: Question[] = generated.map((g, idx) => ({
+        id: 8000 + idx + Date.now(),
+        grade: selectedGrade,
+        subject: g.subject,
+        subjectColor: g.subject === 'Physics' ? '#38bdf8' : g.subject === 'Chemistry' ? '#a855f7' : '#f59e0b',
+        question: g.question,
+        options: g.options,
+        correctIndex: g.correctAnswer,
+        explanation: g.explanation
+      }));
+      setActiveQuestions(formatted);
+      soundEffects.playCompletionBeep();
+    } catch {
+      setActiveQuestions(buildQuestionsForGrade(selectedGrade));
+    } finally {
+      setIsGeneratingAIQuiz(false);
+    }
+  };
 
   // Game state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -398,6 +460,7 @@ export const StudyArenaView: React.FC = () => {
   }, [isPlaying, timeRemaining]);
 
   const handleStartGame = () => {
+    setActiveQuestions(buildQuestionsForGrade(selectedGrade));
     setIsPlaying(true);
     setTimeRemaining(45);
     setQIndex(0);
@@ -416,7 +479,7 @@ export const StudyArenaView: React.FC = () => {
 
   const handleFiftyFifty = () => {
     if (usedFiftyFifty || isAnswerRevealed) return;
-    const currentQ = gradeQuestions[qIndex % gradeQuestions.length];
+    const currentQ = activeQuestions[qIndex % activeQuestions.length];
     const wrongIndices = currentQ.options
       .map((_, i) => i)
       .filter(i => i !== currentQ.correctIndex);
@@ -448,7 +511,7 @@ export const StudyArenaView: React.FC = () => {
     setSelectedAnswer(optionIdx);
     setIsAnswerRevealed(true);
 
-    const currentQ = gradeQuestions[qIndex % gradeQuestions.length];
+    const currentQ = activeQuestions[qIndex % activeQuestions.length];
     const isCorrect = optionIdx === currentQ.correctIndex;
 
     if (isCorrect) {
@@ -474,7 +537,7 @@ export const StudyArenaView: React.FC = () => {
     }, 1200);
   };
 
-  const currentQuestion = gradeQuestions[qIndex % gradeQuestions.length];
+  const currentQuestion = activeQuestions[qIndex % activeQuestions.length];
   const boss = data.game || {
     xp: 0,
     level: 1,
@@ -551,7 +614,7 @@ export const StudyArenaView: React.FC = () => {
             </span>
           </div>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            {gradeQuestions.length} Active Questions in Deck
+            {activeQuestions.length} Active Questions in Deck
           </span>
         </div>
 
@@ -600,14 +663,59 @@ export const StudyArenaView: React.FC = () => {
                 </p>
               </div>
 
-              <div className="pt-2">
-                <button
-                  onClick={handleStartGame}
-                  className="px-8 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-[0_5px_0_#0f766e] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2 mx-auto"
+              <div className="pt-2 flex flex-col items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    onClick={handleStartGame}
+                    className="px-8 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-[0_5px_0_#0f766e] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2"
+                  >
+                    <Zap className="w-5 h-5 fill-current" />
+                    Start {selectedGrade} Challenge
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRollNewQuestions}
+                    className="px-5 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-2"
+                    title="Generate newly randomized variables and shuffle questions"
+                  >
+                    <RefreshCw className="w-4 h-4 text-emerald-500" />
+                    <span>Roll New Questions</span>
+                  </button>
+                </div>
+
+                {/* AI Dynamic NCERT Topic Generator */}
+                <form
+                  onSubmit={handleGenerateAIQuiz}
+                  className="w-full max-w-md pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-2"
                 >
-                  <Zap className="w-5 h-5 fill-current" />
-                  Start {selectedGrade} Challenge
-                </button>
+                  <div className="relative flex-1">
+                    <Bot className="w-4 h-4 text-brand-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder={`Enter any ${selectedGrade} topic (e.g. Thermodynamics, Matrices)...`}
+                      value={aiTopicInput}
+                      onChange={e => setAiTopicInput(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!aiTopicInput.trim() || isGeneratingAIQuiz}
+                    className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-sm"
+                  >
+                    {isGeneratingAIQuiz ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>AI Quiz</span>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
             </div>
           ) : isPlaying ? (
@@ -647,7 +755,7 @@ export const StudyArenaView: React.FC = () => {
                     {currentQuestion.subject} • {currentQuestion.grade}
                   </span>
                   <span className="text-xs text-slate-400 font-mono">
-                    Question {(qIndex % gradeQuestions.length) + 1} of {gradeQuestions.length}
+                    Question {(qIndex % activeQuestions.length) + 1} of {activeQuestions.length}
                   </span>
                 </div>
 

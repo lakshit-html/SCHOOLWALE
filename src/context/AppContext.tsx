@@ -25,6 +25,7 @@ export type NavigationTab =
   | 'pomodoro'
   | 'arena'
   | 'whiteboard'
+  | 'ncert'
   | 'notes'
   | 'tests'
   | 'analytics'

@@ -13,10 +13,13 @@ import {
   Lightbulb,
   Zap,
   BookOpen,
-  Brain
+  Brain,
+  Key,
+  ExternalLink
 } from 'lucide-react';
 import { geminiService, ChatMessage } from '../../services/gemini';
 import { MathFormula } from '../common/MathFormula';
+import { isModifierPressed } from '../../utils/platform';
 
 export const ForgeAIBottomBar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,6 +27,26 @@ export const ForgeAIBottomBar: React.FC = () => {
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Per-student API key configuration state
+  const [showKeyConfig, setShowKeyConfig] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState(() => geminiService.getApiKey());
+  const [keySavedFeedback, setKeySavedFeedback] = useState(false);
+
+  const handleSaveKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    geminiService.setApiKey(apiKeyInput.trim());
+    setKeySavedFeedback(true);
+    setTimeout(() => {
+      setKeySavedFeedback(false);
+      setShowKeyConfig(false);
+    }, 1500);
+  };
+
+  const handleClearKey = () => {
+    geminiService.setApiKey('');
+    setApiKeyInput('');
+  };
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -146,6 +169,21 @@ export const ForgeAIBottomBar: React.FC = () => {
 
             <div className="flex items-center gap-1">
               <button
+                type="button"
+                onClick={() => setShowKeyConfig(!showKeyConfig)}
+                className={`p-1.5 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1 text-[11px] ${
+                  showKeyConfig ? 'bg-white/20' : ''
+                }`}
+                title="Configure Gemini API Key"
+              >
+                <Key className="w-3.5 h-3.5 text-amber-300" />
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    geminiService.getApiKey() ? 'bg-emerald-400' : 'bg-amber-400 animate-ping'
+                  }`}
+                />
+              </button>
+              <button
                 onClick={() => setMessages([messages[0]])}
                 className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
                 title="Clear Chat History"
@@ -168,6 +206,54 @@ export const ForgeAIBottomBar: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Per-student API Key Drawer */}
+          {showKeyConfig && (
+            <div className="p-3.5 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-xs space-y-2 animate-fade-in shadow-inner">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-xs">
+                  <Key className="w-3.5 h-3.5 text-amber-500" /> Your Personal Gemini Key
+                </span>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-teal-600 dark:text-teal-400 hover:underline font-semibold flex items-center gap-0.5"
+                >
+                  <span>Get Free Key</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                Every user can save their own Gemini API key privately on this device. Keys are saved in your browser&apos;s localStorage and never sent anywhere else.
+              </p>
+              <form onSubmit={handleSaveKey} className="flex items-center gap-1.5">
+                <input
+                  type="password"
+                  placeholder="Paste AIzaSy... or AQ.Ab8..."
+                  value={apiKeyInput}
+                  onChange={e => setApiKeyInput(e.target.value)}
+                  className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-500"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold text-xs shadow-sm transition-all"
+                >
+                  {keySavedFeedback ? 'Saved!' : 'Save'}
+                </button>
+                {geminiService.getApiKey() && (
+                  <button
+                    type="button"
+                    onClick={handleClearKey}
+                    className="px-2 py-1.5 text-rose-500 hover:bg-rose-500/10 rounded-xl text-xs font-semibold"
+                    title="Remove saved key"
+                  >
+                    Clear
+                  </button>
+                )}
+              </form>
+            </div>
+          )}
 
           {/* Quick Prompt Chips */}
           <div className="p-2.5 bg-slate-50 dark:bg-slate-950/70 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
@@ -277,9 +363,15 @@ export const ForgeAIBottomBar: React.FC = () => {
             >
               <input
                 type="text"
-                placeholder="Ask any topic, formula derivation, or question..."
+                placeholder="Ask any topic, formula derivation, or question... (⌘ + Enter to send)"
                 value={inputQuery}
                 onChange={e => setInputQuery(e.target.value)}
+                onKeyDown={e => {
+                  if (isModifierPressed(e) && e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 className="flex-1 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-500"
               />
               <button

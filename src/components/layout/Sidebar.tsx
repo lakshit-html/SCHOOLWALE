@@ -14,7 +14,8 @@ import {
   Settings,
   Sparkles,
   HelpCircle,
-  X
+  X,
+  BookMarked
 } from 'lucide-react';
 import { calculateDashboardMetrics } from '../../services/analytics';
 
@@ -79,6 +80,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Presentation,
       badge: 'Board',
       badgeColor: 'bg-teal-500/15 text-teal-600 dark:text-teal-300 border-teal-500/30'
+    },
+    {
+      id: 'ncert',
+      label: 'NCERT Books',
+      icon: BookMarked,
+      badge: 'Portal',
+      badgeColor: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30'
     },
     { id: 'notes', label: 'Notes Manager', icon: BookOpen },
     { id: 'tests', label: 'Mock Tests & Exam', icon: Award },

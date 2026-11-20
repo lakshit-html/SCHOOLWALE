@@ -14,6 +14,7 @@ import { RevisionView } from './components/revision/RevisionView';
 import { PomodoroView } from './components/timer/PomodoroView';
 import { StudyArenaView } from './components/game/StudyArenaView';
 import { WhiteboardView } from './components/whiteboard/WhiteboardView';
+import { NCERTBooksView } from './components/ncert/NCERTBooksView';
 import { NotesView } from './components/notes/NotesView';
 import { MockTestsView } from './components/tests/MockTestsView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
@@ -64,6 +65,7 @@ export const AppContent: React.FC = () => {
           {activeTab === 'pomodoro' && <PomodoroView />}
           {activeTab === 'arena' && <StudyArenaView />}
           {activeTab === 'whiteboard' && <WhiteboardView />}
+          {activeTab === 'ncert' && <NCERTBooksView />}
           {activeTab === 'notes' && <NotesView />}
           {activeTab === 'tests' && <MockTestsView />}
           {activeTab === 'analytics' && <AnalyticsView />}
