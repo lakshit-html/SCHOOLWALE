@@ -5,6 +5,9 @@ on:
     branches: [master, main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     name: Build Android Release APK & AAB
@@ -41,7 +44,7 @@ jobs:
           # Restore exact pubspec.yaml
           cp pubspec.yaml.bak pubspec.yaml
           
-          # Inject network permissions and URL queries into AndroidManifest.xml
+          # Inject network permissions into AndroidManifest.xml
           python3 -c '
           path = "android/app/src/main/AndroidManifest.xml"
           with open(path, "r") as f:
@@ -63,18 +66,14 @@ jobs:
           set +e
           flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation > build_apk.log 2>&1
           EXIT_CODE=$?
-          cat build_apk.log
+          echo "## Flutter Build Log (Exit Code: $EXIT_CODE)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 120 build_apk.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
           if [ $EXIT_CODE -ne 0 ]; then
             echo "❌ Flutter Build Failed with exit code $EXIT_CODE"
             exit $EXIT_CODE
           fi
-
-      - name: Upload Build Log Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-build-log
-          path: flutter_app/build_apk.log
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
