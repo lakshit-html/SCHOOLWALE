@@ -4,6 +4,9 @@ import '../providers/app_state.dart';
 import '../models/study_task.dart';
 import '../theme/app_theme.dart';
 import '../widgets/forge_ai_bottom_sheet.dart';
+import '../widgets/quick_calculator_sheet.dart';
+import 'profile_screen.dart';
+import 'revision_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -34,6 +37,16 @@ class DashboardScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.calculate_outlined, color: AppTheme.brandBlue, size: 22),
+            onPressed: () => QuickCalculatorSheet.show(context),
+            tooltip: 'Scientific Calculator',
+          ),
+          IconButton(
+            icon: const Icon(Icons.repeat, color: AppTheme.brandGreen, size: 22),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevisionScreen())),
+            tooltip: 'Spaced Revision',
+          ),
+          IconButton(
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
@@ -44,6 +57,27 @@ class DashboardScreen extends StatelessWidget {
             ),
             onPressed: () => ForgeAIBottomSheet.show(context),
             tooltip: 'Ask ForgeAI Tutor',
+          ),
+          IconButton(
+            icon: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.brandPrimary, AppTheme.brandBlue],
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white24, width: 1.5),
+              ),
+              child: Center(
+                child: Text(
+                  profile.name.isNotEmpty ? profile.name[0].toUpperCase() : 'S',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+            tooltip: 'Profile & Database',
           ),
           const SizedBox(width: 8),
         ],

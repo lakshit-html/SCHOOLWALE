@@ -3,15 +3,21 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/forge_ai_bottom_sheet.dart';
+import '../widgets/floating_timer_hud.dart';
 import 'dashboard_screen.dart';
 import 'ncert_library_screen.dart';
 import 'study_arena_screen.dart';
 import 'whiteboard_screen.dart';
 import 'pomodoro_screen.dart';
 
-class MainNavigationScreen extends StatelessWidget {
+class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
 
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> with WidgetsBindingObserver {
   static const List<Widget> _screens = [
     DashboardScreen(),
     NCERTLibraryScreen(),
@@ -21,13 +27,38 @@ class MainNavigationScreen extends StatelessWidget {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reconcile wall-clock timer immediately upon returning from background
+      context.read<AppState>().reconcileAppResumed();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
 
     return Scaffold(
-      body: IndexedStack(
-        index: appState.currentTabIndex,
-        children: _screens,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: appState.currentTabIndex,
+            children: _screens,
+          ),
+          const FloatingTimerHUD(),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.brandPrimary,
