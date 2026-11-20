@@ -125,7 +125,7 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -287,7 +287,7 @@ class _StudyArenaScreenState extends State<StudyArenaScreen> {
         children: [
           // HUD: Timer, Score, Combo
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
