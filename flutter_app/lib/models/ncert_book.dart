@@ -10,12 +10,12 @@ class NCERTChapter {
   final List<String> highYieldPoints;
 
   NCERTChapter({
-    required this.id,
+    this.id = '',
     required this.chapterNumber,
     required this.title,
     required this.pdfUrl,
-    required this.portalUrl,
-    required this.summary,
+    this.portalUrl = '',
+    this.summary = '',
     this.detailedTheory,
     this.keyFormulas = const [],
     this.highYieldPoints = const [],

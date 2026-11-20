@@ -294,9 +294,12 @@ class _NotesScreenState extends State<NotesScreen> {
                                     label: const Text('Whiteboard', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                     onPressed: () {
                                       final chapter = NCERTChapter(
+                                        id: note.id,
                                         chapterNumber: 1,
                                         title: '${note.subject} - ${note.title}',
                                         pdfUrl: '',
+                                        portalUrl: '',
+                                        summary: note.keyConcept,
                                         keyFormulas: note.formulas,
                                       );
                                       context.read<AppState>().setWhiteboardChapter(chapter);
