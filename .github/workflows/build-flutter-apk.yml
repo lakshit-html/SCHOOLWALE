@@ -29,26 +29,27 @@ jobs:
       - name: Recreate Clean Native Android Project
         working-directory: ./flutter_app
         run: |
-          # Backup pubspec.yaml to preserve dependencies
+          # Backup clean pubspec.yaml
           cp pubspec.yaml pubspec.yaml.bak
           
           # Remove broken handcrafted android directory
           rm -rf android
           
-          # Generate official, perfectly compatible Android platform directory from Flutter SDK
+          # Generate official Android platform files matching runner Flutter SDK
           flutter create --platforms=android --org com.schoolwale --project-name studyforge .
           
           # Restore exact pubspec.yaml
           cp pubspec.yaml.bak pubspec.yaml
           
-          # Inject network permissions into AndroidManifest.xml
+          # Inject network permissions and URL queries into AndroidManifest.xml
           python3 -c '
           path = "android/app/src/main/AndroidManifest.xml"
           with open(path, "r") as f:
               c = f.read()
           perms = """    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n"""
+          queries = """    <queries>\n        <intent>\n            <action android:name="android.intent.action.VIEW" />\n            <data android:scheme="https" />\n        </intent>\n    </queries>\n"""
           if "android.permission.INTERNET" not in c:
-              c = c.replace("<application", perms + "    <application")
+              c = c.replace("<application", perms + queries + "    <application")
               with open(path, "w") as f:
                   f.write(c)
           '
@@ -58,7 +59,22 @@ jobs:
 
       - name: Build Android Release APK
         working-directory: ./flutter_app
-        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
+        run: |
+          set +e
+          flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation > build_apk.log 2>&1
+          EXIT_CODE=$?
+          cat build_apk.log
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ Flutter Build Failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+
+      - name: Upload Build Log Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-build-log
+          path: flutter_app/build_apk.log
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
