@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:firebase": "tsc && vite build --base=/",
+    "build:gh-pages": "tsc && vite build --base=/SCHOOLWALE/",
+    "deploy:firebase": "npm run build:firebase && npx firebase-tools deploy --only hosting",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

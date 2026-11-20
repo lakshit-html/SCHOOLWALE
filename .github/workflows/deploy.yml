@@ -38,7 +38,7 @@ jobs:
 
       - name: Build application
         run: |
-          npm run build
+          npm run build:gh-pages
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 
