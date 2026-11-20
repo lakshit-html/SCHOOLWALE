@@ -26,7 +26,7 @@ class AppTheme {
         surface: cardDark,
       ),
       textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: cardDark,
         elevation: 0,
         shape: RoundedRectangleBorder(
