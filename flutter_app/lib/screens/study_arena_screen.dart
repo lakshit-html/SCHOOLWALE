@@ -300,11 +300,11 @@ class _StudyArenaScreenState extends State<StudyArenaScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.roseAccent.withOpacity(0.2),
+                    color: AppTheme.brandRose.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.roseAccent),
+                    border: Border.all(color: AppTheme.brandRose),
                   ),
-                  child: Text('🔥 ${_combo}x Combo!', style: const TextStyle(color: Colors.roseAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: Text('🔥 ${_combo}x Combo!', style: const TextStyle(color: AppTheme.brandRose, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               Text('Score: $_score', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.brandAccent)),
             ],
@@ -368,7 +368,7 @@ class _StudyArenaScreenState extends State<StudyArenaScreen> {
                     borderCol = AppTheme.brandAccent;
                     bgCol = const Color(0xFF064E3B);
                   } else if (idx == _selectedAnswer) {
-                    borderCol = Colors.roseAccent;
+                    borderCol = AppTheme.brandRose;
                     bgCol = const Color(0xFF4C0519);
                   }
                 }

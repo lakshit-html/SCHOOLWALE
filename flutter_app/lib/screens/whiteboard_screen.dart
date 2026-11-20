@@ -82,7 +82,7 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
             onPressed: _undoneStrokes.isNotEmpty ? _handleRedo : null,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_sweep, size: 20, color: Colors.roseAccent),
+            icon: const Icon(Icons.delete_sweep, size: 20, color: AppTheme.brandRose),
             onPressed: _strokes.isNotEmpty ? _handleClear : null,
             tooltip: 'Clear Board',
           ),
@@ -143,7 +143,7 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
                   tooltip: 'Pen',
                 ),
                 IconButton(
-                  icon: Icon(Icons.cleaning_services, color: _isEraser ? Colors.roseAccent : Colors.white54, size: 20),
+                  icon: Icon(Icons.cleaning_services, color: _isEraser ? AppTheme.brandRose : Colors.white54, size: 20),
                   onPressed: () => setState(() => _isEraser = true),
                   tooltip: 'Eraser',
                 ),

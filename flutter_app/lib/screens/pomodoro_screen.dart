@@ -91,112 +91,115 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
         title: const Text('Pomodoro Focus Timer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
       ),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          children: [
-            // Mode switcher
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppTheme.cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderDark),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildModeChip('Focus (25m)', PomodoroMode.focus),
-                  _buildModeChip('Short (5m)', PomodoroMode.shortBreak),
-                  _buildModeChip('Long (15m)', PomodoroMode.longBreak),
-                ],
-              ),
-            ),
-            const SizedBox(height: 48),
-
-            // Circular Timer
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 240,
-                  height: 240,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 12,
-                    backgroundColor: const Color(0xFF1E293B),
-                    valueColor: AlwaysStoppedAnimation(
-                      _mode == PomodoroMode.focus ? AppTheme.brandPrimary : AppTheme.brandBlue,
-                    ),
-                  ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Mode switcher
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.borderDark),
                 ),
-                Column(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      '$minutes:$seconds',
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _mode == PomodoroMode.focus ? 'Deep Study Interval' : 'Rest & Hydrate',
-                      style: const TextStyle(fontSize: 12, color: Colors.white54),
-                    ),
+                    _buildModeChip('Focus (25m)', PomodoroMode.focus),
+                    _buildModeChip('Short (5m)', PomodoroMode.shortBreak),
+                    _buildModeChip('Long (15m)', PomodoroMode.longBreak),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 48),
-
-            // Controls
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  iconSize: 32,
-                  icon: const Icon(Icons.refresh_rounded, color: Colors.white54),
-                  onPressed: _resetTimer,
-                  tooltip: 'Reset',
-                ),
-                const SizedBox(width: 24),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.brandPrimary,
-                    padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  onPressed: _toggleTimer,
-                  child: Text(
-                    _isRunning ? 'Pause Focus' : 'Start Focus',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 36),
-
-            // Session Stats
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderDark),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              const SizedBox(height: 48),
+
+              // Circular Timer
+              Stack(
+                alignment: Alignment.center,
                 children: [
-                  const Icon(Icons.check_circle_outline, color: AppTheme.brandAccent, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Completed Sessions Today: $_completedSessions', style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                  SizedBox(
+                    width: 240,
+                    height: 240,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 12,
+                      backgroundColor: const Color(0xFF1E293B),
+                      valueColor: AlwaysStoppedAnimation(
+                        _mode == PomodoroMode.focus ? AppTheme.brandPrimary : AppTheme.brandBlue,
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$minutes:$seconds',
+                        style: const TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _mode == PomodoroMode.focus ? 'Deep Study Interval' : 'Rest & Hydrate',
+                        style: const TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 48),
+
+              // Controls
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.refresh_rounded, color: Colors.white54),
+                    onPressed: _resetTimer,
+                    tooltip: 'Reset',
+                  ),
+                  const SizedBox(width: 24),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.brandPrimary,
+                      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    onPressed: _toggleTimer,
+                    child: Text(
+                      _isRunning ? 'Pause Focus' : 'Start Focus',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 36),
+
+              // Session Stats
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.borderDark),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: AppTheme.brandAccent, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Completed Sessions Today: $_completedSessions', style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
