@@ -1,7 +1,0 @@
-analyzer:
-  errors:
-    todo: ignore
-    prefer_const_constructors: ignore
-    prefer_const_declarations: ignore
-    use_key_in_widget_constructors: ignore
-    avoid_print: ignore
