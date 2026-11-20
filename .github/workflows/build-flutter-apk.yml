@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-apk:
-    name: Build Android Release APK
+    name: Build Android Release APK & AAB
     runs-on: ubuntu-latest
 
     steps:
@@ -26,19 +26,39 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Verify Flutter & Android Setup
+      - name: Recreate Clean Native Android Project
         working-directory: ./flutter_app
         run: |
-          flutter clean
+          # Backup pubspec.yaml to preserve dependencies
+          cp pubspec.yaml pubspec.yaml.bak
+          
+          # Remove broken handcrafted android directory
+          rm -rf android
+          
+          # Generate official, perfectly compatible Android platform directory from Flutter SDK
+          flutter create --platforms=android --org com.schoolwale --project-name studyforge .
+          
+          # Restore exact pubspec.yaml
+          cp pubspec.yaml.bak pubspec.yaml
+          
+          # Inject network permissions into AndroidManifest.xml
+          python3 -c '
+          path = "android/app/src/main/AndroidManifest.xml"
+          with open(path, "r") as f:
+              c = f.read()
+          perms = """    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n"""
+          if "android.permission.INTERNET" not in c:
+              c = c.replace("<application", perms + "    <application")
+              with open(path, "w") as f:
+                  f.write(c)
+          '
+          
+          # Fetch all dependencies
           flutter pub get
 
       - name: Build Android Release APK
         working-directory: ./flutter_app
         run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
-
-      - name: Build Android App Bundle (.aab for Play Store)
-        working-directory: ./flutter_app
-        run: flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
@@ -46,6 +66,10 @@ jobs:
           name: studyforge-release-apk
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+
+      - name: Build Android App Bundle (.aab for Play Store)
+        working-directory: ./flutter_app
+        run: flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Upload Play Store AAB Bundle Artifact
         uses: actions/upload-artifact@v4
