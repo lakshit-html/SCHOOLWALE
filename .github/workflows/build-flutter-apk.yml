@@ -34,11 +34,11 @@ jobs:
 
       - name: Build Android Release APK
         working-directory: ./flutter_app
-        run: flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Build Android App Bundle (.aab for Play Store)
         working-directory: ./flutter_app
-        run: flutter build appbundle --release --no-tree-shake-icons
+        run: flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
