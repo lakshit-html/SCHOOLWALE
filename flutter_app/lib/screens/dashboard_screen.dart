@@ -5,10 +5,14 @@ import '../models/study_task.dart';
 import '../theme/app_theme.dart';
 import '../widgets/forge_ai_bottom_sheet.dart';
 import '../widgets/quick_calculator_sheet.dart';
+import '../services/crazy_notification_service.dart';
 import 'profile_screen.dart';
 import 'revision_screen.dart';
 import 'backlog_screen.dart';
 import 'notes_screen.dart';
+import 'mock_tests_screen.dart';
+import 'analytics_screen.dart';
+import 'planner_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -129,15 +133,23 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         actions: [
-          // Theme Switcher (Monochrome B&W <-> Cyber Vibrant)
+          // Theme Switcher (Dark <-> Light <-> Monochrome)
           IconButton(
             icon: Icon(
-              isMono ? Icons.dark_mode : Icons.contrast,
-              color: isMono ? Colors.white : AppTheme.brandGold,
+              appState.themeMode == AppThemeMode.light
+                  ? Icons.light_mode
+                  : (appState.themeMode == AppThemeMode.monochrome ? Icons.contrast : Icons.dark_mode),
+              color: AppTheme.brandGold,
               size: 20,
             ),
-            tooltip: isMono ? 'Switch to Cyber Vibrant' : 'Switch to Minimalist B&W',
-            onPressed: () => appState.toggleMonochromeMode(),
+            tooltip: 'Toggle Theme (Dark / Light / Monochrome)',
+            onPressed: () => appState.toggleThemeMode(),
+          ),
+          // Crazy Study Notification Trigger
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined, color: Colors.amber, size: 20),
+            onPressed: () => CrazyNotificationService.showCrazyNotification(context),
+            tooltip: 'Crazy Study Notification',
           ),
           // Backlog Tracker
           IconButton(
@@ -164,7 +176,7 @@ class DashboardScreen extends StatelessWidget {
               height: 30,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: isMono
+                  colors: appState.themeMode == AppThemeMode.monochrome
                       ? [Colors.white24, Colors.white12]
                       : [AppTheme.brandPrimary, AppTheme.brandBlue],
                 ),
@@ -370,6 +382,46 @@ class DashboardScreen extends StatelessWidget {
                   icon: Icons.repeat,
                   color: AppTheme.brandGreen,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevisionScreen())),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _buildToolCard(
+                  title: 'Mock Tests',
+                  subtitle: 'Diagnose score & mistakes',
+                  icon: Icons.military_tech_outlined,
+                  color: AppTheme.brandPrimary,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MockTestsScreen())),
+                ),
+                const SizedBox(width: 10),
+                _buildToolCard(
+                  title: 'Study Analytics',
+                  subtitle: '7-day momentum velocity',
+                  icon: Icons.query_stats,
+                  color: Colors.cyanAccent,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsScreen())),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _buildToolCard(
+                  title: 'Daily Planner',
+                  subtitle: 'Time block scheduling',
+                  icon: Icons.calendar_month,
+                  color: Colors.indigoAccent,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlannerScreen())),
+                ),
+                const SizedBox(width: 10),
+                _buildToolCard(
+                  title: 'Study Alerts',
+                  subtitle: 'Crazy study motivation',
+                  icon: Icons.notifications_active,
+                  color: Colors.amber,
+                  onTap: () => CrazyNotificationService.showCrazyNotification(context),
                 ),
               ],
             ),

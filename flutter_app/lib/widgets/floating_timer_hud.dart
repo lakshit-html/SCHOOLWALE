@@ -109,7 +109,6 @@ class _FloatingTimerHUDState extends State<FloatingTimerHUD> with SingleTickerPr
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    fontFeatures: [],
                   ),
                 ),
                 const SizedBox(width: 6),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+enum AppThemeMode { dark, light, monochrome }
+
 class AppTheme {
   // Brand Emerald & Cyber Colors
   static const Color brandPrimary = Color(0xFF059669);
@@ -16,6 +18,13 @@ class AppTheme {
   static const Color cardDark = Color(0xFF111827);
   static const Color borderDark = Color(0xFF1F2937);
 
+  // Surface Colors - Crisp Light Mode
+  static const Color bgLight = Color(0xFFF8FAFC);
+  static const Color cardLight = Color(0xFFFFFFFF);
+  static const Color borderLight = Color(0xFFE2E8F0);
+  static const Color textDark = Color(0xFF0F172A);
+  static const Color textMuted = Color(0xFF64748B);
+
   // Surface Colors - Pure Monochrome (Black & White Paper Mode)
   static const Color monoBg = Color(0xFF000000);
   static const Color monoCard = Color(0xFF121212);
@@ -24,7 +33,7 @@ class AppTheme {
   static const Color monoWhite = Color(0xFFFFFFFF);
   static const Color monoMuted = Color(0xFFA1A1AA);
 
-  // Standard Dark Theme
+  // Cyber Dark Theme (Default)
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
@@ -53,6 +62,44 @@ class AppTheme {
         backgroundColor: cardDark,
         selectedItemColor: brandAccent,
         unselectedItemColor: Color(0xFF9CA3AF),
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+    );
+  }
+
+  // Crisp Professional Light Theme
+  static ThemeData get lightTheme {
+    return ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: bgLight,
+      primaryColor: brandPrimary,
+      colorScheme: const ColorScheme.light(
+        primary: brandPrimary,
+        secondary: brandAccent,
+        surface: cardLight,
+      ),
+      textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme),
+      cardTheme: CardThemeData(
+        color: cardLight,
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.04),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: borderLight, width: 1),
+        ),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: cardLight,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: IconThemeData(color: textDark),
+        titleTextStyle: TextStyle(color: textDark, fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: cardLight,
+        selectedItemColor: brandPrimary,
+        unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
+import '../services/crazy_notification_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -353,7 +354,34 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Minimalist Monochrome Theme Switcher
+            // Theme Selection Mode (Dark, Light, Monochrome)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppTheme.cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.borderDark),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('App Theme & Appearance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _buildThemeChip('Cyber Dark', AppThemeMode.dark, appState),
+                      const SizedBox(width: 8),
+                      _buildThemeChip('Crisp Light', AppThemeMode.light, appState),
+                      const SizedBox(width: 8),
+                      _buildThemeChip('Monochrome', AppThemeMode.monochrome, appState),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Crazy Study Notifications Card
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -363,32 +391,20 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    appState.isMonochromeMode ? Icons.contrast : Icons.palette_outlined,
-                    color: appState.isMonochromeMode ? Colors.white : AppTheme.brandGold,
-                    size: 22,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
+                  const Icon(Icons.notifications_active, color: Colors.amber, size: 22),
+                  const SizedBox(width: 12),
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          appState.isMonochromeMode ? 'Monochrome B&W Theme' : 'Cyber Neon Dark Theme',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        Text(
-                          appState.isMonochromeMode ? 'Minimalist ink & paper distraction-free mode' : 'Vibrant emerald & neon cyber mode',
-                          style: const TextStyle(color: Colors.white54, fontSize: 11),
-                        ),
+                        Text('Crazy Study Reminders', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        Text('High-energy motivational study alerts', style: TextStyle(color: Colors.white54, fontSize: 11)),
                       ],
                     ),
                   ),
-                  Switch(
-                    value: appState.isMonochromeMode,
-                    activeColor: Colors.white,
-                    activeTrackColor: Colors.white38,
-                    onChanged: (_) => appState.toggleMonochromeMode(),
+                  TextButton(
+                    onPressed: () => CrazyNotificationService.showCrazyNotification(context),
+                    child: const Text('Test Alert', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ],
               ),
@@ -521,6 +537,33 @@ class ProfileScreen extends StatelessWidget {
         Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
         Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
       ],
+    );
+  }
+
+  Widget _buildThemeChip(String label, AppThemeMode mode, AppState appState) {
+    final isSel = appState.themeMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => appState.setThemeMode(mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSel ? AppTheme.brandPrimary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isSel ? AppTheme.brandPrimary : AppTheme.borderDark),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSel ? Colors.white : Colors.white60,
+                fontSize: 11,
+                fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

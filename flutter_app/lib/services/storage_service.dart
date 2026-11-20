@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/study_task.dart';
+import '../theme/app_theme.dart';
 
 class TimerSavedState {
   final int modeIndex;
@@ -39,17 +40,21 @@ class StorageService {
   static const String _keyProfile = 'studyforge_profile';
   static const String _keyTasks = 'studyforge_tasks';
   static const String _keyTimer = 'studyforge_timer';
-  static const String _keyRevisions = 'studyforge_revisions';
-  static const String _keyMonochrome = 'studyforge_monochrome';
+  static const String _keyThemeMode = 'studyforge_theme_mode';
 
-  static Future<bool> loadMonochromeMode() async {
+  // Theme Mode
+  static Future<AppThemeMode> loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyMonochrome) ?? false;
+    final idx = prefs.getInt(_keyThemeMode);
+    if (idx != null && idx >= 0 && idx < AppThemeMode.values.length) {
+      return AppThemeMode.values[idx];
+    }
+    return AppThemeMode.dark;
   }
 
-  static Future<void> saveMonochromeMode(bool isMono) async {
+  static Future<void> saveThemeMode(AppThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyMonochrome, isMono);
+    await prefs.setInt(_keyThemeMode, mode.index);
   }
 
   // Profile operations
@@ -61,7 +66,13 @@ class StorageService {
         return UserProfile.fromJson(jsonDecode(jsonStr));
       } catch (_) {}
     }
-    return UserProfile(name: 'Aspiring Scholar', grade: 'Class 12', targetExam: 'CBSE + JEE/NEET');
+    return UserProfile(
+      name: '',
+      grade: 'Class 12',
+      targetExam: 'CBSE Board + JEE',
+      isLoggedIn: false,
+      hasCompletedOnboarding: false,
+    );
   }
 
   static Future<void> saveProfile(UserProfile profile) async {
@@ -69,7 +80,7 @@ class StorageService {
     await prefs.setString(_keyProfile, jsonEncode(profile.toJson()));
   }
 
-  // Task operations
+  // Task operations - 100% Fresh Start (No Example / Dummy Data)
   static Future<List<StudyTask>> loadTasks() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = prefs.getString(_keyTasks);
@@ -79,36 +90,7 @@ class StorageService {
         return list.map((item) => StudyTask.fromJson(item)).toList();
       } catch (_) {}
     }
-
-    return [
-      StudyTask(
-        id: 'task_1',
-        title: 'Revise Gauss Law & Electric Dipole Derivations',
-        subject: 'Physics',
-        durationMinutes: 45,
-        priority: TaskPriority.high,
-        isCompleted: false,
-        scheduledDate: DateTime.now(),
-      ),
-      StudyTask(
-        id: 'task_2',
-        title: 'Solve NCERT In-Text Numericals on Solutions',
-        subject: 'Chemistry',
-        durationMinutes: 40,
-        priority: TaskPriority.medium,
-        isCompleted: false,
-        scheduledDate: DateTime.now(),
-      ),
-      StudyTask(
-        id: 'task_3',
-        title: 'Practice Matrix Inversion & Cramer\'s Rule',
-        subject: 'Mathematics',
-        durationMinutes: 50,
-        priority: TaskPriority.high,
-        isCompleted: true,
-        scheduledDate: DateTime.now(),
-      ),
-    ];
+    return []; // Clean empty start!
   }
 
   static Future<void> saveTasks(List<StudyTask> tasks) async {
@@ -141,13 +123,12 @@ class StorageService {
 
   // Full Database Vault operations
   static Future<String> exportFullDatabaseJson() async {
-    final prefs = await SharedPreferences.getInstance();
     final profile = await loadProfile();
     final tasks = await loadTasks();
     final timer = await loadTimerState();
 
     final data = {
-      'version': '1.0.0',
+      'version': '2.0.0',
       'exportedAt': DateTime.now().toIso8601String(),
       'profile': profile.toJson(),
       'tasks': tasks.map((t) => t.toJson()).toList(),

@@ -228,7 +228,7 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
                 // Action buttons row
                 Row(
                   children: [
-                    // PDF Button
+                    // PDF Alternative Button (Google Docs Viewer / Official Portal)
                     TextButton.icon(
                       style: TextButton.styleFrom(
                         backgroundColor: AppTheme.brandPrimary.withOpacity(0.15),
@@ -236,12 +236,12 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: const Icon(Icons.picture_as_pdf, size: 14, color: AppTheme.brandAccent),
-                      label: const Text('PDF', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.brandAccent)),
-                      onPressed: () => _launchUrl(ch.pdfUrl),
+                      label: const Text('Read PDF', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.brandAccent)),
+                      onPressed: () => _launchPdf(ch.pdfUrl, book.officialPortalUrl),
                     ),
                     const SizedBox(width: 8),
 
-                    // Quick Reader
+                    // Built-in Offline Reader
                     TextButton.icon(
                       style: TextButton.styleFrom(
                         backgroundColor: const Color(0xFF1E293B),
@@ -249,7 +249,7 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: const Icon(Icons.menu_book, size: 14, color: Colors.white70),
-                      label: const Text('Reader', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                      label: const Text('Offline Guide', style: TextStyle(fontSize: 11, color: Colors.white70)),
                       onPressed: () => _showReaderDialog(context, book, ch),
                     ),
                     const Spacer(),
@@ -364,6 +364,30 @@ class _NCERTLibraryScreenState extends State<NCERTLibraryScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _launchPdf(String pdfUrl, String fallbackPortalUrl) async {
+    // 1. First try Google Docs Web PDF Viewer (bypasses NCERT server CORS/403 blocks)
+    final googleDocsViewerUrl = 'https://docs.google.com/viewer?url=${Uri.encodeComponent(pdfUrl)}';
+    final gUri = Uri.parse(googleDocsViewerUrl);
+
+    try {
+      if (await launchUrl(gUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    } catch (_) {}
+
+    // 2. Fallback to direct NCERT PDF link
+    try {
+      final directUri = Uri.parse(pdfUrl);
+      if (await launchUrl(directUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    } catch (_) {}
+
+    // 3. Fallback to official NCERT Portal book index
+    final portalUri = Uri.parse(fallbackPortalUrl.isNotEmpty ? fallbackPortalUrl : 'https://ncert.nic.in/textbook.php');
+    await launchUrl(portalUri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _launchUrl(String url) async {

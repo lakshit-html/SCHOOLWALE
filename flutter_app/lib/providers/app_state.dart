@@ -4,20 +4,23 @@ import '../models/user_profile.dart';
 import '../models/study_task.dart';
 import '../models/ncert_book.dart';
 import '../services/storage_service.dart';
+import '../theme/app_theme.dart';
 
 enum PomodoroMode { focus, shortBreak, longBreak }
 
 class AppState extends ChangeNotifier {
   UserProfile _profile = UserProfile(
-    name: 'Aspiring Scholar',
+    name: '',
     grade: 'Class 12',
     targetExam: 'CBSE Board + JEE',
+    isLoggedIn: false,
+    hasCompletedOnboarding: false,
   );
 
   List<StudyTask> _tasks = [];
   bool _isLoading = true;
   NCERTChapter? _activeWhiteboardChapter;
-  bool _isMonochromeMode = false;
+  AppThemeMode _themeMode = AppThemeMode.dark;
   int _currentTabIndex = 0;
 
   // Persistent Timer Engine
@@ -37,12 +40,27 @@ class AppState extends ChangeNotifier {
   bool get isLoading => _isLoading;
   NCERTChapter? get activeWhiteboardChapter => _activeWhiteboardChapter;
   int get currentTabIndex => _currentTabIndex;
-  bool get isMonochromeMode => _isMonochromeMode;
+  AppThemeMode get themeMode => _themeMode;
+  bool get isMonochromeMode => _themeMode == AppThemeMode.monochrome;
+
+  void setThemeMode(AppThemeMode mode) {
+    _themeMode = mode;
+    StorageService.saveThemeMode(_themeMode);
+    notifyListeners();
+  }
+
+  void toggleThemeMode() {
+    if (_themeMode == AppThemeMode.dark) {
+      setThemeMode(AppThemeMode.light);
+    } else if (_themeMode == AppThemeMode.light) {
+      setThemeMode(AppThemeMode.monochrome);
+    } else {
+      setThemeMode(AppThemeMode.dark);
+    }
+  }
 
   void toggleMonochromeMode() {
-    _isMonochromeMode = !_isMonochromeMode;
-    StorageService.saveMonochromeMode(_isMonochromeMode);
-    notifyListeners();
+    toggleThemeMode();
   }
 
   // Timer Getters
@@ -77,7 +95,7 @@ class AppState extends ChangeNotifier {
   Future<void> _initData() async {
     _profile = await StorageService.loadProfile();
     _tasks = await StorageService.loadTasks();
-    _isMonochromeMode = await StorageService.loadMonochromeMode();
+    _themeMode = await StorageService.loadThemeMode();
 
     // Restore persistent timer state
     final savedTimer = await StorageService.loadTimerState();
