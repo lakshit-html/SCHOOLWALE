@@ -66,11 +66,16 @@ jobs:
           set +e
           flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation > build_apk.log 2>&1
           EXIT_CODE=$?
-          echo "## Flutter Build Log (Exit Code: $EXIT_CODE)" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          tail -n 120 build_apk.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat build_apk.log
           if [ $EXIT_CODE -ne 0 ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            cd ..
+            git checkout -B build-logs
+            cp flutter_app/build_apk.log ./build_error.txt
+            git add build_error.txt
+            git commit -m "chore: save build error log [skip ci]"
+            git push -f origin build-logs
             echo "❌ Flutter Build Failed with exit code $EXIT_CODE"
             exit $EXIT_CODE
           fi
